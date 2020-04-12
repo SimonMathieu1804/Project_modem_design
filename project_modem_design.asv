@@ -11,7 +11,7 @@ L = 16; %cyclic prefix length
 %=============================
 Nb = 2*N; % block size
 
-%need to vary Es/No to obtain BER in function of it
+%need to vary No to obtain BER in function of ES/N0
 Es = 1; 
 N0 = 1;
 
@@ -44,7 +44,22 @@ paralel_CP = [CP ; parallel];
 % parallel to serial
 serial = [paralel_CP(:,1)' paralel_CP(:,2)' paralel_CP(:,3)' paralel_CP(:,4)'];
 
+% Pulse Shapping 
+alpha=0.2;
+N_truncated=10;
+u= rcosdesign(alpha,N_truncated,10,'sqrt'); 
+E_u= u*u'; %E_u should be equal to one
+fvtool(u,'impulse'); % Plot the filter
+x = upfirdn(serial, u, 10);
 
+% Shift at carrier freq ??
+
+% AWGN Channel
+
+% bring back from carrier 
+% Matched filter and sampling + bring back from carrier freq ??
+
+% 
 
 
 

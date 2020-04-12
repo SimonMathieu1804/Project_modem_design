@@ -11,11 +11,11 @@ L = 16; %cyclic prefix length
 %=============================
 Nb = 2*N; % block size
 
-%need to vary Es/No to obtain BER in function of it
-Es = 1; 
+%need to vary No to obtain BER in function of ES/N0
+Es = 1; % keep Es to unity
 N0 = 1;
 
-% vector of 2048 random bits
+% vector of 2048 random bits (to send 4 OFDM packets)
 bits = randi([0 1],1,4*2*Nb); 
 
 % Symbol mapping
@@ -44,13 +44,24 @@ paralel_CP = [CP ; parallel];
 % parallel to serial
 serial = [paralel_CP(:,1)' paralel_CP(:,2)' paralel_CP(:,3)' paralel_CP(:,4)'];
 
-% Pulse Shapping + put at carrier freq ??
+% Pulse Shapping 
+alpha=0.2;
+N_truncated=10;
+u= rcosdesign(alpha,N_truncated,10,'sqrt'); 
+E_u= u*u'; %E_u should be equal to one
+fvtool(u,'impulse'); % Plot the filter
+x = upfirdn(serial, u, 10);
+
+% Shift at carrier freq ??
 
 % AWGN Channel
 
-% Matched filter and sampling + bring back from carrier freq ??
 
-% 
+% bring back from carrier freq ??
+
+% Matched filter
+
+
 
 
 
