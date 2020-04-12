@@ -44,13 +44,7 @@ paralel_CP = [CP ; parallel];
 % parallel to serial
 serial = [paralel_CP(:,1)' paralel_CP(:,2)' paralel_CP(:,3)' paralel_CP(:,4)'];
 
-% Pulse Shapping + put at carrier freq ??
 
-% AWGN Channel
-
-% Matched filter and sampling + bring back from carrier freq ??
-
-% 
 
 
 
