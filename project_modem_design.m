@@ -13,7 +13,7 @@ Nb = 2*N; % block size
 
 %need to vary No to obtain BER in function of ES/N0
 Es = 1; % keep Es to unity
-N0 = 1;
+N0 = 0;
 
 % vector of 2048 random bits (to send 4 OFDM packets)
 bits = randi([0 1],1,4*2*Nb); 
@@ -55,11 +55,30 @@ x = upfirdn(serial, u, 10);
 % Shift at carrier freq ??
 
 % AWGN Channel
-
+x = x + randn(size(x))*2*N0;
 
 % bring back from carrier freq ??
 
 % Matched filter
+y = upfirdn(x, u, 1, 10);
+
+% serial to parralel 
+y=y';
+parallelRx = [y(1:(Nb+L)) y((Nb+L)+1:2*(Nb+L)) y(2*(Nb+L)+1:3*(Nb+L)) y(3*(Nb+L)+1:4*(Nb+L))];
+
+% Remove CP
+parallelRx = parallelRx(17:end,:);
+
+% FFT on the blocks
+parallelRx = fft(parallelRx);
+
+% parallel to serial
+output = [parallelRx(:,1)' parallelRx(:,2)' parallelRx(:,3)' parallelRx(:,4)'];
+figure(3);
+x = real(output); y = imag(output);
+scatter(x,y,40,'o','filled','r'); title('Tx constellation','Fontsize',16); 
+xlabel('In phase amplitude','Fontsize',14); ylabel('Quandrature amplitude','Fontsize',14);
+
 
 
 
