@@ -42,7 +42,7 @@ CP = [parallel(end-L+1:end,1) parallel(end-L+1:end,2) parallel(end-L+1:end,3) pa
 paralel_CP = [CP ; parallel];
 
 % parallel to serial
-serial = [paralel_CP(:,1)' paralel_CP(:,2)' paralel_CP(:,3)' paralel_CP(:,4)'];
+serial = [paralel_CP(:,1).' paralel_CP(:,2).' paralel_CP(:,3).' paralel_CP(:,4).'];
 
 % Pulse Shapping 
 alpha=0.2;
@@ -56,6 +56,7 @@ x = upfirdn(serial, u, 10);
 
 % AWGN Channel
 x = x + randn(size(x))*2*N0;
+%y = serial+ randn(size(serial))*2*N0;
 
 % bring back from carrier freq ??
 
@@ -63,28 +64,19 @@ x = x + randn(size(x))*2*N0;
 y = upfirdn(x, u, 1, 10);
 
 % serial to parralel 
-y=y';
+y=y.';
 parallelRx = [y(1:(Nb+L)) y((Nb+L)+1:2*(Nb+L)) y(2*(Nb+L)+1:3*(Nb+L)) y(3*(Nb+L)+1:4*(Nb+L))];
 
 % Remove CP
-parallelRx = parallelRx(17:end,:);
+parallelRx = parallelRx((L+1):end,:);
 
 % FFT on the blocks
 parallelRx = fft(parallelRx);
 
 % parallel to serial
-output = [parallelRx(:,1)' parallelRx(:,2)' parallelRx(:,3)' parallelRx(:,4)'];
+output = [parallelRx(:,1).' parallelRx(:,2).' parallelRx(:,3).' parallelRx(:,4).'];
 figure(3);
 x = real(output); y = imag(output);
-scatter(x,y,40,'o','filled','r'); title('Tx constellation','Fontsize',16); 
+scatter(x,y,40,'o','filled','r'); title('Rx constellation','Fontsize',16); 
 xlabel('In phase amplitude','Fontsize',14); ylabel('Quandrature amplitude','Fontsize',14);
-
-
-
-
-
-
-
-
-
 
