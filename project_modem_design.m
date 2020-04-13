@@ -219,10 +219,12 @@ f1 = figure();
 %%%%%%%%%%%%%%%%%%%%%%
 %%%Bits performance
 %%%%%%%%%%%%%%%%%%%%%%
+Petarg = 10^-5;
+Gamma = 2/3*(erfcinv(Petarg/2))^2;
 %- Water-filling distribution power
-BitsWF = 0.5*log(1+Pi.*abs(Hff).^2./N0)/log(2)
+BitsWF = 0.5*log(1+Pi.*abs(Hff).^2./(N0*Gamma))/log(2)
 %-Power uniformly distributed
-BitsPowerUniform = 0.5*log(1+Pmax/128*ones(1,128).*abs(Hff).^2./N0)/log(2)
+BitsPowerUniform = 0.5*log(1+Pmax/128*ones(1,128).*abs(Hff).^2./(N0*Gamma))/log(2)
 
 figure();
 hold on;
