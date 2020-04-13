@@ -147,3 +147,6 @@ hold on;
 semilogy(Es_N0_dB,BER/2,'-xb','LineWidth',1.5,'MarkerSize',8);
 grid;
 xlabel('E_S/N_0 [dB]'); ylabel('SER'); legend('Theory (4QAM)','Simulated');
+
+%% Step 2: Resource allocation
+
