@@ -157,6 +157,7 @@ grid;
 xlabel('E_S/N_0 [dB]'); ylabel('SER'); legend('Theory (4QAM)','Simulated');
 
 %% Step 2: Ressource allocation
+
 %First, computation Water-Filling
 %1)Start with initial guess of µ  =1/(2*lambda*ln(2))
 %2)Compute corresponding powers and total required power
@@ -231,4 +232,6 @@ hold on;
 plot(1:128,BitsWF);
 plot(1:128,BitsPowerUniform);
 legend('WF','Uniform');
+
+%% Step 2 bonus : Power allocation only
 
