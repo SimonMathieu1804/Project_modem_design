@@ -156,5 +156,77 @@ semilogy(Es_N0_dB,BER/2,'-xb','LineWidth',1.5,'MarkerSize',8);
 grid;
 xlabel('E_S/N_0 [dB]'); ylabel('SER'); legend('Theory (4QAM)','Simulated');
 
-%% Step 2: Resource allocation
+%% Step 2: Ressource allocation
+%First, computation Water-Filling
+%1)Start with initial guess of µ  =1/(2*lambda*ln(2))
+%2)Compute corresponding powers and total required power
+%3)Decrease or increase µ by some amount if required power is too large/small
+N = 128; %number of subcarrier
+f_0 = 2E9; %carrier frequency
+f_sub = 15E3; %carrier subspacing
+L = 16; %cyclic prefix length
+Nb = 2*N; % block size
+
+load('CIR.mat')
+%fvtool(h,'impulse'); % Plot the filter
+%fvtool(h,'freq');
+Pmax = 100; %1
+Ptot = 0;
+mu = 0.5; %0.5
+Pi = zeros(1,N);
+N0 = 0.01;%0.000035;
+size(h)
+size(zeros(1,N-length(h)))
+h = h/norm(h);
+hzeropad = [h.' zeros(1,N-length(h))];
+Hf = fft(hzeropad);
+Hf = fftshift(abs(Hf));
+
+Hf = [h(1)*ones(1,16) h(2)*ones(1,16) h(3)*ones(1,16) h(4)*ones(1,16) h(5)*ones(1,16) h(6)*ones(1,16) h(7)*ones(1,16) h(8)*ones(1,16)];
+
+for (n=0:1000000)
+    Pi = (mu*(abs(Hf).^2)-N0)./(abs(Hf).^2);
+    Pi0 = Pi>0;
+    Pi = Pi0.*Pi;
+    Ptot = sum(Pi);
+    if (abs(Pmax-Ptot)<0.01)
+     %End of algorithm
+        Ptot
+        break; 
+    elseif(Pmax > Ptot)
+        %Too Few power 
+        mu = mu +0.0001;
+    elseif (Pmax<Ptot)
+        %Too much power
+        mu = mu - 0.0001;
+    end 
+end
+
+Hff = [h(1)*ones(1,16) h(2)*ones(1,16) h(3)*ones(1,16) h(4)*ones(1,16) h(5)*ones(1,16) h(6)*ones(1,16) h(7)*ones(1,16) h(8)*ones(1,16)];
+
+
+f1 = figure();
+    clf;
+    set(f1,'Color',[1 1 1]);
+    bar(Pi +N0./(abs(Hff).^2),1,'r')
+    hold on;    
+    bar(N0./abs(Hff).^2,1);
+    xlabel('subchannel indices');
+    title('Water filling algorithm')
+    
+   % legend('amount of power allocated to each subchannel',...
+         %  'Noise to Carrier Ratio')
+%%%%%%%%%%%%%%%%%%%%%%
+%%%Bits performance
+%%%%%%%%%%%%%%%%%%%%%%
+%- Water-filling distribution power
+BitsWF = 0.5*log(1+Pi.*abs(Hff).^2./N0)/log(2)
+%-Power uniformly distributed
+BitsPowerUniform = 0.5*log(1+Pmax/128*ones(1,128).*abs(Hff).^2./N0)/log(2)
+
+figure();
+hold on;
+plot(1:128,BitsWF);
+plot(1:128,BitsPowerUniform);
+legend('WF','Uniform');
 
