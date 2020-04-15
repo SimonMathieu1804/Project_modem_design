@@ -13,7 +13,7 @@ N = 128; %number of subcarrier
 f_0 = 2E9; %carrier frequency
 f_sub = 15E3; %carrier subspacing
 L = 16; %cyclic prefix length
-Nb = 2*N; % block size
+Nb = N; % block size
 
 %======================= Es=1 and N0=0.1 ==================================
 N0 = 0.1;
@@ -34,37 +34,37 @@ xlabel('In phase amplitude','Fontsize',14); ylabel('Quandrature amplitude','Font
 % 3) Seriel to parralel
 parallel = [symbols(1:Nb) symbols(Nb+1:2*Nb) symbols(2*Nb+1:3*Nb) symbols(3*Nb+1:4*Nb)]; % each column is a block of 256 symbols
 % 4) IFFT on the blocks
-parallel = ifft(parallel);
+parallel = sqrt(Nb)*ifft(parallel);
 % 5) Cyclic prefix insertion
 CP = [parallel(end-L+1:end,1) parallel(end-L+1:end,2) parallel(end-L+1:end,3) parallel(end-L+1:end,4)];
 paralel_CP = [CP ; parallel];
 % 6) parallel to serial
 serial = [paralel_CP(:,1).' paralel_CP(:,2).' paralel_CP(:,3).' paralel_CP(:,4).'];
 
-% Pulse Shapping
-alpha=0.2;
-N_truncated=10;
-u= rcosdesign(alpha,N_truncated,10,'sqrt');
-E_u= u*u'; %E_u should be equal to one
-fvtool(u,'impulse'); % Plot the filter
-fvtool(u,'freq');
-x = upfirdn(serial, u, 10);
-% Shift at carrier freq ??
-% AWGN Channel
-x = x + randn(size(x))*2*N0;
-% bring back from carrier freq ??
-% Matched filter
-y = upfirdn(x, u, 1, 10);
+% % Pulse Shapping
+% alpha=0.2;
+% N_truncated=10;
+% u= rcosdesign(alpha,N_truncated,10,'sqrt');
+% E_u= u*u'; %E_u should be equal to one
+% fvtool(u,'impulse'); % Plot the filter
+% fvtool(u,'freq');
+% x = upfirdn(serial, u, 10);
+% % Shift at carrier freq ??
+% % AWGN Channel
+% x = x + randn(size(x))*2*N0;
+% % bring back from carrier freq ??
+% % Matched filter
+% y = upfirdn(x, u, 1, 10);
 
 % 7) AWGN channel
-y = 16*serial+ randn(size(serial))*sqrt(N0)+ randn(size(serial))*sqrt(N0)*1i; % line to comment in order to use pulse shaping
+y = serial+ randn(size(serial))*sqrt(N0/2)+ randn(size(serial))*sqrt(N0/2)*1i; % line to comment in order to use pulse shaping
 % 8) serial to parralel
 y=y.';
 parallelRx = [y(1:(Nb+L)) y((Nb+L)+1:2*(Nb+L)) y(2*(Nb+L)+1:3*(Nb+L)) y(3*(Nb+L)+1:4*(Nb+L))];
 % 9) Remove CP
 parallelRx = parallelRx((L+1):end,:);
 % 10) FFT on the blocks
-parallelRx = fft(parallelRx);
+parallelRx = fft(parallelRx)/sqrt(Nb);
 % 11) parallel to serial
 output = [parallelRx(:,1).' parallelRx(:,2).' parallelRx(:,3).' parallelRx(:,4).'];
 figure(4);
@@ -92,7 +92,7 @@ Es_N0=10.^(Es_N0_dB/10);
 
 BER=zeros(Nsnr,1);
 for index_SNR=1:Nsnr
-    for iter = 1:5
+    for iter = 1:20
         N0=1/Es_N0(index_SNR);
         %---------------------------
         % 1) vector of 2048 random bits (to send 4 OFDM packets)
@@ -108,21 +108,21 @@ for index_SNR=1:Nsnr
         % 3) Seriel to parralel
         parallel = [symbols(1:Nb) symbols(Nb+1:2*Nb) symbols(2*Nb+1:3*Nb) symbols(3*Nb+1:4*Nb)]; % each column is a block of 256 symbols
         % 4) IFFT on the blocks
-        parallel = ifft(parallel);
+        parallel = sqrt(Nb)*ifft(parallel);
         % 5) Cyclic prefix insertion
         CP = [parallel(end-L+1:end,1) parallel(end-L+1:end,2) parallel(end-L+1:end,3) parallel(end-L+1:end,4)];
         paralel_CP = [CP ; parallel];
         % 6) parallel to serial
         serial = [paralel_CP(:,1).' paralel_CP(:,2).' paralel_CP(:,3).' paralel_CP(:,4).'];
         % 7) AWGN channel
-        y = 16*serial+ randn(size(serial))*sqrt(N0)+ randn(size(serial))*sqrt(N0)*1i;
+        y = serial+ randn(size(serial))*sqrt(N0/2)+ randn(size(serial))*sqrt(N0/2)*1i;
         % 8) serial to parralel
         y=y.';
         parallelRx = [y(1:(Nb+L)) y((Nb+L)+1:2*(Nb+L)) y(2*(Nb+L)+1:3*(Nb+L)) y(3*(Nb+L)+1:4*(Nb+L))];
         % 9) Remove CP
         parallelRx = parallelRx((L+1):end,:);
         % 10) FFT on the blocks
-        parallelRx = fft(parallelRx);
+        parallelRx = fft(parallelRx)/sqrt(Nb);
         % 11) parallel to serial
         output = [parallelRx(:,1).' parallelRx(:,2).' parallelRx(:,3).' parallelRx(:,4).'];
         % 12) demapping
@@ -147,7 +147,7 @@ end
 k=4;
 M=2^k;
 x=sqrt(3*k*Es_N0/(M-1));
-theoretical_BER=(4/k)*(1-1/sqrt(M))*(1/2)*erfc(x/sqrt(2));
+theoretical_BER=erfc(sqrt(0.5*(10.^(Es_N0_dB/10)))) - (1/4)*(erfc(sqrt(0.5*(10.^(Es_N0_dB/10))))).^2;
 
 figure(5);
 semilogy(Es_N0_dB,theoretical_BER,'-r','LineWidth',1.5);
@@ -234,4 +234,5 @@ plot(1:128,BitsPowerUniform);
 legend('WF','Uniform');
 
 %% Step 2 bonus : Power allocation only
+
 
