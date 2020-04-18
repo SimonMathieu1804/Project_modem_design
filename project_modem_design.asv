@@ -166,19 +166,19 @@ N = 128; %number of subcarrier
 f_0 = 2E9; %carrier frequency
 f_sub = 15E3; %carrier subspacing
 L = 16; %cyclic prefix length
-Nb = 2*N; % block size
+Nb = N; % block size
 
 load('CIR.mat')
 %fvtool(h,'impulse'); % Plot the filter
 %fvtool(h,'freq');
-Pmax = 10; %1
+Pmax = 90; %1
 Ptot = 0;
 mu = 0.5; %0.5
 Pi = zeros(1,N);
 N0 = 0.01;%0.000035;
 size(h)
 size(zeros(1,N-length(h)))
-h = h/norm(h);
+%h = h/norm(h);
 hzeropad = [h.' zeros(1,N-length(h))];
 Hf = fft(hzeropad);
 Hf = fftshift(abs(Hf))/sqrt(Nb);
@@ -223,12 +223,13 @@ f1 = figure();
 %%%%%%%%%%%%%%%%%%%%%%
 %%%Bits performance
 %%%%%%%%%%%%%%%%%%%%%%
+Hff = Hff/norm(Hff)
 Petarg = 10^-5;
 Gamma = 2/3*(erfcinv(Petarg/2))^2;
 %- Water-filling distribution power
-BitsWF = 0.5*log(1+Pi.*(Hff).^2./(N0*Gamma))/log(2)
+BitsWF = 1*log(1+(Pi.*(abs(Hff).^2))./(N0*Gamma))/log(2);% Suppress of 1/2 factor because of the definition of bits/symbol
 %-Power uniformly distributed
-BitsPowerUniform = 0.5*log(1+Pmax/Nb*ones(1,128).*(Hff).^2./(N0*Gamma))/log(2)
+BitsPowerUniform = 1*log(1+(Pmax/Nb*ones(1,Nb).*(abs(Hff).^2))./(N0*Gamma))/log(2);%.*(abs(Hff).^2 Suppress of 1/2 factor because of the definition of bits/symbol
 
 figure();
 hold on;
@@ -285,7 +286,14 @@ for index_SNR=1:Nsnr
         serial = [paralel_CP(:,1).' paralel_CP(:,2).' paralel_CP(:,3).' paralel_CP(:,4).' paralel_CP(:,5).'];
         %y = serial+ randn(size(serial))*sqrt(N0/2)+ randn(size(serial))*sqrt(N0/2)*1i;
         % 7) AWGN channel + real channel
-        h = raylrnd(1:16) + 1i*raylrnd(1:16);
+        %h = +0*1i;
+        long = 8;
+        h = raylrnd(1:long) + 1i*raylrnd(1:long);
+        for i= 1:999
+            h = raylrnd(1:long) + 1i*raylrnd(1:long);
+        end
+        h = h/1000;
+        %h = raylrnd(1:8) + 1i*raylrnd(1:8);
         h = h./norm(h);
         y = conv(h,serial)+ randn(size(conv(h,serial)))*sqrt(N0/2)+ randn(size(conv(h,serial)))*sqrt(N0/2)*1i;
         size(h)
@@ -313,7 +321,7 @@ for index_SNR=1:Nsnr
         %hhat = hhat.';
       %  figure(10);
        % plot(1:8,[mean(abs(hhat(1,:))) mean(abs(hhat(2,:))) mean(abs(hhat(3,:))) mean(abs(hhat(4,:))) mean(abs(hhat(5,:))) mean(abs(hhat(6,:))) mean(abs(hhat(7,:))) mean(abs(hhat(8,:)))]);
-        hhat = hhat(1:8:end) % taking Each 16 elements of Hf in order to have 8 taps (Sampling method)
+        hhat = hhat(1:16:end) % taking Each 16 elements of Hf in order to have 8 taps (Sampling method)
         figure(11);
         plot(1:length(h),abs(h));
         %estimee = [mean(abs(hhat(1,:))) mean(abs(hhat(2,:))) mean(abs(hhat(3,:))) mean(abs(hhat(4,:))) mean(abs(hhat(5,:))) mean(abs(hhat(6,:))) mean(abs(hhat(7,:))) mean(abs(hhat(8,:)))]

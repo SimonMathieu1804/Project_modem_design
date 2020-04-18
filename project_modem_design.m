@@ -166,23 +166,24 @@ N = 128; %number of subcarrier
 f_0 = 2E9; %carrier frequency
 f_sub = 15E3; %carrier subspacing
 L = 16; %cyclic prefix length
-Nb = 2*N; % block size
+Nb = N; % block size
 
 load('CIR.mat')
 %fvtool(h,'impulse'); % Plot the filter
 %fvtool(h,'freq');
-Pmax = 10; %1
+Pmax = 128; %1
 Ptot = 0;
 mu = 0.5; %0.5
 Pi = zeros(1,N);
 N0 = 0.01;%0.000035;
 size(h)
 size(zeros(1,N-length(h)))
-h = h/norm(h);
+%h = h/norm(h);
+hzeropad = h;
 hzeropad = [h.' zeros(1,N-length(h))];
 Hf = fft(hzeropad);
-Hf = fftshift(abs(Hf))/sqrt(Nb);
-
+Hf = fftshift(abs(Hf));%/sqrt(8);
+%Hf = Hf/norm(Hf);
 figure(21);
 plot(1:length(Hf),Hf);
 
@@ -223,12 +224,13 @@ f1 = figure();
 %%%%%%%%%%%%%%%%%%%%%%
 %%%Bits performance
 %%%%%%%%%%%%%%%%%%%%%%
+Hff = Hff;
 Petarg = 10^-5;
-Gamma = 2/3*(erfcinv(Petarg/2))^2;
+Gamma = 2/3*((erfcinv(Petarg/2))^2);
 %- Water-filling distribution power
-BitsWF = 0.5*log(1+Pi.*(Hff).^2./(N0*Gamma))/log(2)
+BitsWF = 1/2*log(1+(Pi.*(abs(Hff).^2))./(N0*Gamma))/log(2);%
 %-Power uniformly distributed
-BitsPowerUniform = 0.5*log(1+Pmax/Nb*ones(1,128).*(Hff).^2./(N0*Gamma))/log(2)
+BitsPowerUniform = 1/2*log(1+(Pmax/Nb*ones(1,Nb).*(abs(Hff).^2))./(N0*Gamma))/log(2);%.*(abs(Hff).^2 
 
 figure();
 hold on;
