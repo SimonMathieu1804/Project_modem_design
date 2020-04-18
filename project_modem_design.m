@@ -285,9 +285,16 @@ for index_SNR=1:Nsnr
         serial = [paralel_CP(:,1).' paralel_CP(:,2).' paralel_CP(:,3).' paralel_CP(:,4).' paralel_CP(:,5).'];
         %y = serial+ randn(size(serial))*sqrt(N0/2)+ randn(size(serial))*sqrt(N0/2)*1i;
         % 7) AWGN channel + real channel
-        h = raylrnd(1:10) + 1i*raylrnd(1:10);
+        %h = +0*1i;
+        long = 8;
+        h = raylrnd(1:long) + 1i*raylrnd(1:long);
+        for i= 1:999
+            h = raylrnd(1:long) + 1i*raylrnd(1:long);
+        end
+        h = h/1000;
+        %h = raylrnd(1:8) + 1i*raylrnd(1:8);
         h = h./norm(h);
-        y = 16*conv(h,serial)+ randn(size(conv(h,serial)))*sqrt(N0/2)+ randn(size(conv(h,serial)))*sqrt(N0/2)*1i;
+        y = conv(h,serial)+ randn(size(conv(h,serial)))*sqrt(N0/2)+ randn(size(conv(h,serial)))*sqrt(N0/2)*1i;
         size(h)
         size(serial)
         % 8) serial to parralel
@@ -300,24 +307,26 @@ for index_SNR=1:Nsnr
         % CHANNEL ESTIMATION
         test = parallelRx(:,1);
         %testtraining = test((L+1):end);
+        testsize = size(test)
         testtraining = test;
-        traindague = pinv(training,10^-5);
+        traindague = pinv(training, 10^-5);
         %training = training.',
         size(traindague)
         size(training)
-        identity = traindague.*training;
+       % identity = traindague.'.*training;
         size(traindague)
         size(testtraining)
         hhat = traindague.*testtraining;
         %hhat = hhat.';
-        figure(10);
-        plot(1:8,[mean(abs(hhat(1,:))) mean(abs(hhat(2,:))) mean(abs(hhat(3,:))) mean(abs(hhat(4,:))) mean(abs(hhat(5,:))) mean(abs(hhat(6,:))) mean(abs(hhat(7,:))) mean(abs(hhat(8,:)))]);
+      %  figure(10);
+       % plot(1:8,[mean(abs(hhat(1,:))) mean(abs(hhat(2,:))) mean(abs(hhat(3,:))) mean(abs(hhat(4,:))) mean(abs(hhat(5,:))) mean(abs(hhat(6,:))) mean(abs(hhat(7,:))) mean(abs(hhat(8,:)))]);
+        hhat = hhat(1:16:end) % taking Each 16 elements of Hf in order to have 8 taps (Sampling method)
         figure(11);
         plot(1:length(h),abs(h));
         %estimee = [mean(abs(hhat(1,:))) mean(abs(hhat(2,:))) mean(abs(hhat(3,:))) mean(abs(hhat(4,:))) mean(abs(hhat(5,:))) mean(abs(hhat(6,:))) mean(abs(hhat(7,:))) mean(abs(hhat(8,:)))]
         hguess = (ifft(hhat))
         hguess = hguess/norm(hguess);
-        estimee = [hguess(1) hguess(2) hguess(3) hguess(4) hguess(5) hguess(6) hguess(7) hguess(8) hguess(9) hguess(10)]
+        estimee = [hguess(1) hguess(2) hguess(3) hguess(4) hguess(5) hguess(6) hguess(7) hguess(8)]
         (h)
         figure(20);
         plot(1:length(hguess), abs(hguess))
