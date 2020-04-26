@@ -171,36 +171,36 @@ Nb = N; % block size
 load('CIR.mat')
 %fvtool(h,'impulse'); % Plot the filter
 %fvtool(h,'freq');
-Pmax = 90; %1
+Pmax = 128; %1
 Ptot = 0;
 mu = 0.5; %0.5
 Pi = zeros(1,N);
-N0 = 0.01;%0.000035;
-size(h)
-size(zeros(1,N-length(h)))
+N0 = 12.8;%6.66E-7;%0.000035;
+
 %h = h/norm(h);
+hzeropad = h;
 hzeropad = [h.' zeros(1,N-length(h))];
 Hf = fft(hzeropad);
 Hf = fftshift(abs(Hf))/sqrt(Nb);
-
+%Hf = Hf/norm(Hf);
 figure(21);
 plot(1:length(Hf),Hf);
 
 %Hf = [h(1)*ones(1,16) h(2)*ones(1,16) h(3)*ones(1,16) h(4)*ones(1,16) h(5)*ones(1,16) h(6)*ones(1,16) h(7)*ones(1,16) h(8)*ones(1,16)];
 
 for (n=0:1000000)
-    Pi = (mu*(abs(Hf).^2)-N0)./(abs(Hf).^2);
+    Pi = (mu*(abs(Hf).^2)-N0*f_sub)./(abs(Hf).^2);
     Pi0 = Pi>0;
     Pi = Pi0.*Pi;
     Ptot = sum(Pi);
-    if (abs(Pmax-Ptot)<0.01)
+    if(abs(Pmax-Ptot)<0.01)
      %End of algorithm
         Ptot;
         break; 
-    elseif(Pmax > Ptot)
+    elseif(Pmax>Ptot)
         %Too Few power 
         mu = mu +0.0001;
-    elseif (Pmax<Ptot)
+    elseif(Pmax<Ptot)
         %Too much power
         mu = mu - 0.0001;
     end 
@@ -209,7 +209,7 @@ end
 %Hff = [h(1)*ones(1,16) h(2)*ones(1,16) h(3)*ones(1,16) h(4)*ones(1,16) h(5)*ones(1,16) h(6)*ones(1,16) h(7)*ones(1,16) h(8)*ones(1,16)];
 Hff = Hf;
 
-f1 = figure();
+f1 = figure(99);
     clf;
     set(f1,'Color',[1 1 1]);
     bar(Pi +N0./(abs(Hff).^2),1,'r')
@@ -223,13 +223,13 @@ f1 = figure();
 %%%%%%%%%%%%%%%%%%%%%%
 %%%Bits performance
 %%%%%%%%%%%%%%%%%%%%%%
-Hff = Hff/norm(Hff)
+Hff = Hff;
 Petarg = 10^-5;
-Gamma = 2/3*(erfcinv(Petarg/2))^2;
+Gamma = 2/3*((erfcinv(Petarg/2))^2);
 %- Water-filling distribution power
-BitsWF = 1*log(1+(Pi.*(abs(Hff).^2))./(N0*Gamma))/log(2);% Suppress of 1/2 factor because of the definition of bits/symbol
+BitsWF = 1/2*log(1+(Pi.*(abs(Hff).^2)./(N0)*Gamma))/log(2);%
 %-Power uniformly distributed
-BitsPowerUniform = 1*log(1+(Pmax/Nb*ones(1,Nb).*(abs(Hff).^2))./(N0*Gamma))/log(2);%.*(abs(Hff).^2 Suppress of 1/2 factor because of the definition of bits/symbol
+BitsPowerUniform = 1/2*log(1+(Pmax/Nb*ones(1,Nb).*(abs(Hff).^2)./(N0)*Gamma))/log(2);%.*(abs(Hff).^2 
 
 figure();
 hold on;
@@ -238,22 +238,63 @@ plot(1:128,BitsPowerUniform);
 legend('WF','Uniform');
 
 %%%%%%%%%%%%%%%%%%%%
-% Step2 : False Bonus
+% Step2 : False Bonus : Bits fixed
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%
+lambda = -0.5;
+Pmax = 128;
+N0 = 0.01;
+for (n=0:1000000)
+    Pi = N0./Hff.^2./(-lambda);
+    Pi0 = Pi>0;
+    Pi = Pi0.*Pi;
+    Ptot = sum(Pi);
+    if(abs(Pmax-Ptot)<0.01)
+     %End of algorithm
+        Ptot;
+        break; 
+    elseif(Pmax>Ptot)
+        %Too Few power 
+        lambda = lambda + 0.00001;
+    elseif(Pmax<Ptot)
+        %Too much power
+        lambda = lambda - 0.00001;
+    end 
+    %lambda
+end
 
+Pi
+f1 = figure(98);
+    clf;
+    set(f1,'Color',[1 1 1]);
+    bar(Pi +N0./(abs(Hff).^2),1,'r')
+    hold on;    
+    bar(N0./abs(Hff).^2,1);
+    xlabel('subchannel indices');
+    title('Power allacation-False Bonus')
+    
+ Petarg = 10^-5;
+Gamma = 2/3*((erfcinv(Petarg/2))^2);
+%- Water-filling distribution power
+BitsBonus = 1/2*log(1+(Pi.*(abs(Hff).^2))./(N0.*(abs(Hff).^2)*Gamma))/log(2);%
+%-Power uniformly distributed
+%BitsPowerUniform = 1/2*log(1+(Pmax/Nb*ones(1,Nb).*(abs(Hff).^2))./(N0*Gamma))/log(2);%.*(abs(Hff).^2 
 
-
-
+figure();
+hold on;
+plot(1:128,BitsBonus);
+%plot(1:128,BitsPowerUniform);
+legend('Bonus');
 
 %% Step 3 : Channel estimation
 Nb = N;
 % BER calculation for each noise level
-Nsnr=1; %%Changed 20 before
-Es_N0_dB=linspace(0,12,Nsnr);
+Nsnr=50; %%Changed 20 before
+Es_N0_dB=linspace(0,30,Nsnr);
 Es_N0=10.^(Es_N0_dB/10);
 
-BER=zeros(Nsnr,1);
+MSE=zeros(Nsnr,1);
 for index_SNR=1:Nsnr
+    
     for iter = 1:20
         N0=1/Es_N0(index_SNR);
         %---------------------------
@@ -267,10 +308,15 @@ for index_SNR=1:Nsnr
         for k=1:4*Nb
             symbols(k)=map(2*k-1)+1i*map(2*k);
         end
-        bitstraining = randi([0 1],1,Nb);
+        bitstraining = [ones(1,Nb/2); -1*ones(1,Nb/2)]; %randi([0 1],1,Nb);
+        maptraining = zeros(1,Nb);
+        for i = 1:Nb/2 
+            maptraining(2*i-1) = bitstraining(1,i);
+            maptraining(2*i) = bitstraining(2,i);
+        end
         % 2) Symbol mapping
-        maptraining = bitstraining;
-        maptraining(maptraining==0) = -1;
+        %maptraining = bitstraining;
+        %maptraining(maptraining==0) = -1;
         %map = sqrt(2)/2*map;
         training = [maptraining];
         % 3) Seriel to parralel
@@ -289,15 +335,13 @@ for index_SNR=1:Nsnr
         %h = +0*1i;
         long = 8;
         h = raylrnd(1:long) + 1i*raylrnd(1:long);
-        for i= 1:999
-            h = raylrnd(1:long) + 1i*raylrnd(1:long);
-        end
-        h = h/1000;
+        %h = h/1000;
         %h = raylrnd(1:8) + 1i*raylrnd(1:8);
         h = h./norm(h);
+        %%%Channel created%%%%%%%%%%%%%%%%%%%%%%%
         y = conv(h,serial)+ randn(size(conv(h,serial)))*sqrt(N0/2)+ randn(size(conv(h,serial)))*sqrt(N0/2)*1i;
-        size(h)
-        size(serial)
+        %size(h)
+        %size(serial)
         % 8) serial to parralel
         y=y.';
         parallelRx = [y(1:(Nb+L)) y((Nb+L)+1:2*(Nb+L)) y(2*(Nb+L)+1:3*(Nb+L)) y(3*(Nb+L)+1:4*(Nb+L)) y(4*(Nb+L)+1:5*(Nb+L))];
@@ -305,33 +349,41 @@ for index_SNR=1:Nsnr
         parallelRx = parallelRx((L+1):end,:);
         % 10) FFT on the blocks
         parallelRx = fft(parallelRx)/sqrt(Nb);
-        % CHANNEL ESTIMATION
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        % CHANNEL ESTIMATION%%%%%%%%%%%%%%
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         test = parallelRx(:,1);
         %testtraining = test((L+1):end);
-        testsize = size(test)
         testtraining = test;
         traindague = pinv(training, 10^-5);
         %training = training.',
-        size(traindague)
-        size(training)
-       % identity = traindague.'.*training;
-        size(traindague)
-        size(testtraining)
+        %identity = traindague.'.*training;
         hhat = traindague.*testtraining;
         %hhat = hhat.';
       %  figure(10);
        % plot(1:8,[mean(abs(hhat(1,:))) mean(abs(hhat(2,:))) mean(abs(hhat(3,:))) mean(abs(hhat(4,:))) mean(abs(hhat(5,:))) mean(abs(hhat(6,:))) mean(abs(hhat(7,:))) mean(abs(hhat(8,:)))]);
-        hhat = hhat(1:16:end) % taking Each 16 elements of Hf in order to have 8 taps (Sampling method)
-        figure(11);
-        plot(1:length(h),abs(h));
+        %hhat = hhat;%(1:16:end); % taking Each 16 elements of Hf in order to have 8 taps (Sampling method)
+        %hhat in frequency
+        %First, filter to remove the "noise padding"
+        %Second, sampling => To have eight taps.
+        %figure(11);
+        %stem(1:length(h),abs(h));
         %estimee = [mean(abs(hhat(1,:))) mean(abs(hhat(2,:))) mean(abs(hhat(3,:))) mean(abs(hhat(4,:))) mean(abs(hhat(5,:))) mean(abs(hhat(6,:))) mean(abs(hhat(7,:))) mean(abs(hhat(8,:)))]
-        hguess = (ifft(hhat))
-        hguess = hguess/norm(hguess);
-        estimee = [hguess(1) hguess(2) hguess(3) hguess(4) hguess(5) hguess(6) hguess(7) hguess(8)]
-        (h)
-        figure(20);
-        plot(1:length(hguess), abs(hguess))
-        size(hhat)
+        hguess = (Nb)*(ifft(hhat))
+        
+        %hguess = hguess;%/norm(hguess);
+        if (long==8)
+            estimee = [hguess(1) hguess(2) hguess(3) hguess(4) hguess(5) hguess(6) hguess(7) hguess(8)];
+        end
+        if (long==9)
+            estimee = [hguess(1) hguess(2) hguess(3) hguess(4) hguess(5) hguess(6) hguess(7) hguess(8) 0];
+        end
+        %(h)
+        %figure(20);
+        %stem(1:length(hguess), abs(hguess))
+        %size(hhat)
+        MSECalc = sum(abs(estimee-h).^2);
+        MSE(index_SNR) = MSE(index_SNR) + MSECalc;
         %abs(hhat(2,:))
         % 11) parallel to serial
         outtraining = parallelRx(:,1).';
@@ -348,8 +400,10 @@ for index_SNR=1:Nsnr
         
         %---------------------------
         %N_symbols = 4*2*Nb;
-        BER(index_SNR)=BER(index_SNR)+sum(output_bits.'~=bits);%/N_symbols;
+        %BER(index_SNR)=BER(index_SNR)+sum(output_bits.'~=bits);%/N_symbols;
     end
     N_symbols = 4*2*Nb*5;
-    BER(index_SNR)=BER(index_SNR)/N_symbols;
+    %BER(index_SNR)=BER(index_SNR)/N_symbols;
 end
+figure(100);
+plot(Es_N0_dB,MSE);
