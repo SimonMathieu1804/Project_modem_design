@@ -175,7 +175,7 @@ Pmax = 128; %1
 Ptot = 0;
 mu = 0.5; %0.5
 Pi = zeros(1,N);
-N0 = 0.01*128;%6.66E-7;%0.000035;
+N0 = 0.01;%6.66E-7;%0.000035;
 
 %h = h/norm(h);
 hzeropad = h;
@@ -189,7 +189,7 @@ plot(1:length(Hf),Hf);
 %Hf = [h(1)*ones(1,16) h(2)*ones(1,16) h(3)*ones(1,16) h(4)*ones(1,16) h(5)*ones(1,16) h(6)*ones(1,16) h(7)*ones(1,16) h(8)*ones(1,16)];
 
 for (n=0:1000000)
-    Pi = (mu*(abs(Hf).^2)-N0)./(abs(Hf).^2);
+    Pi = ((mu*(abs(Hf).^2)-N0)./(abs(Hf).^2));
     Pi0 = Pi>0;
     Pi = Pi0.*Pi;
     Ptot = sum(Pi);
@@ -227,9 +227,9 @@ Hff = Hff;
 Petarg = 10^-5;
 Gamma = 2/3*((erfcinv(Petarg/2))^2);
 %- Water-filling distribution power
-BitsWF = 1/2*log(1+(Pi)./(N0*Gamma))/log(2);%
+BitsWF = 1/2*log(1+(Pi.*(abs(Hf).^2))./(N0*Gamma))/log(2);%
 %-Power uniformly distributed
-BitsPowerUniform = 1/2*log(1+(Pmax/Nb*ones(1,Nb)./(N0*Gamma)))/log(2);%.*(abs(Hff).^2 
+BitsPowerUniform = 1/2*log(1+(Pmax/Nb.*(abs(Hf).^2).*ones(1,Nb)./(N0*Gamma)))/log(2);%.*(abs(Hff).^2 
 
 figure();
 hold on;
@@ -241,10 +241,10 @@ legend('WF','Uniform');
 % Step2 : False Bonus : Bits fixed
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 lambda = -0.5;
-Pmax = 1;
+Pmax = 100;
 N0 = 0.01;
 for (n=0:1000000)
-    Pi = N0./Hff.^2./(-lambda);
+    Pi = sqrt(N0./Hff.^2./(-lambda));
     Pi0 = Pi>0;
     Pi = Pi0.*Pi;
     Ptot = sum(Pi);
@@ -381,7 +381,7 @@ for index_SNR=1:Nsnr
         %figure(20);
         %stem(1:length(hguess), abs(hguess))
         %size(hhat)
-        MSECalc = sum(abs(estimee-h).^2);
+        MSECalc = sum(abs(estimee-h).^2)/20;
         MSE(index_SNR) = MSE(index_SNR) + MSECalc;
         %abs(hhat(2,:))
         % 11) parallel to serial
