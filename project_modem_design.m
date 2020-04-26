@@ -406,3 +406,74 @@ for index_SNR=1:Nsnr
 end
 figure(100);
 plot(Es_N0_dB,MSE);
+
+
+%% Step 4 :Optimal Viterbi decoding
+
+L = 16; % Cyclic prefix length
+Lf = 128; % Input sequence size
+%Lf = 8; % Test input sequence size
+g = [1 1 0;1 1 1]; % Convolutional code
+[n,K] = size(g); % length of the code
+k = 1; % rank of the code
+u = randi([0 1],1,Lf); % Input sequence
+%u = [1 1 0 1 0 1 0 0]; % Test input sequence
+x = zeros(n,Lf); % Coded sequence
+
+u_pad = [zeros(1,n) u];
+for i = 1:Lf
+    t = i+2;
+    x(1,i) = sum(u_pad(i:t).*(flip(g(1,:))));
+    x(2,i) = sum(u_pad(i:t).*(flip(g(2,:))));
+end
+
+x(x==3) = 1;
+x(x==2) = 0;
+
+%======================= Es=1 and N0=0.1 ==================================
+N0 = 0.1;
+% 2) Symbol mapping
+map = x;
+map(map==0) = -1;
+map = sqrt(2)/2*map;
+symbols = zeros(Lf,1); % One OFDM symbol
+for r=1:Lf
+    symbols(r)=map(1,r)+1i*map(2,r);
+end
+figure(1);
+x = real(symbols); y = imag(symbols);
+scatter(x,y,40,'o','filled','r'); title('Tx constellation','Fontsize',16);
+xlabel('In phase amplitude','Fontsize',14); ylabel('Quandrature amplitude','Fontsize',14);
+% 3) Seriel to parralel
+parallel = symbols; % each column is a block of 128 symbols
+% 4) IFFT on the blocks
+parallel = sqrt(Nb)*ifft(parallel);
+% 5) Cyclic prefix insertion
+CP = parallel(end-L+1:end);
+paralel_CP = [CP ; parallel];
+% 6) parallel to serial
+serial = paralel_CP(:,1).';
+% 7) AWGN channel
+y = conv(h_true,serial)+ randn(size(conv(h_true,serial)))*sqrt(N0/2)+ randn(size(conv(h_true,serial)))*sqrt(N0/2)*1i;
+% 8) serial to parralel
+y=y.';
+parallelRx = y(1:(Lf+L));
+% 9) Remove CP
+parallelRx = parallelRx((L+1):end,:);
+% 10) FFT on the blocks
+parallelRx = fft(parallelRx)/sqrt(Nb);
+% 11) parallel to serial
+output = parallelRx(:,1).';
+figure(4);
+x = real(output); y = imag(output);
+scatter(x,y,40,'o','filled','r'); title('Rx constellation','Fontsize',16);
+xlabel('In phase amplitude','Fontsize',14); ylabel('Quandrature amplitude','Fontsize',14);
+% 12) demapping
+output_bits = zeros(Lf,1);
+for r=1:Lf
+    output_bits(2*r-1)=real(output(r));
+    output_bits(2*r)=imag(output(r));
+end
+% 13) decision
+output_bits(output_bits<=0)=0;
+output_bits(output_bits>0)=1;
