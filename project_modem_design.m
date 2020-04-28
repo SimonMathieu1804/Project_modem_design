@@ -237,7 +237,7 @@ plot(1:128,BitsWF);
 plot(1:128,BitsPowerUniform);
 legend('WF','Uniform');
 
-%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%
 % Step2 : False Bonus : Bits fixed
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 lambda = -0.5;
@@ -503,7 +503,7 @@ for iter = 1:Lf
     % update the matrix of cumulative distance
     distance = [distance distance];
     twolast = [state_table(:,end-1) state_table(:,end)];
-    [not yep] = size(distance);
+    [not, yep] = size(distance);
     for k = 1:yep
         switch(twolast(k,1))
             case 0
@@ -542,7 +542,7 @@ for iter = 1:Lf
         if (isempty(index)==0)
             A = state_table(index,:);
             B = distance(index);
-            [M I] = max(B);
+            [M I] = min(B);
             result = [result ; A(I,:)];
             newDist = [newDist B(I)];
         end
@@ -551,10 +551,41 @@ for iter = 1:Lf
     distance = newDist;
 end
 
-%indpath = find(state_table(:,end)==0);
-best_path = state_table%(indpath,:);
-best_dist = distance%(indpath);
+[best_dist, indpath] = min(distance);
+best_path = state_table(indpath,:);
 
-% interpreting the best path into a bit sequence
-% TO FILL
-
+% interpreting the best path into the bit sequence
+output = [];
+for k = 1:length(best_path)-1
+    switch(best_path(k))
+        case 0
+            if(best_path(k+1)==0)
+                output = [output 0];
+            else
+                output = [output 1];
+            end
+        case 1
+            if(best_path(k+1)==2)
+                output = [output 0];
+            else
+                output = [output 1];
+            end
+        case 2
+            if(best_path(k+1)==0)
+                output = [output 0];
+            else
+                output = [output 1];
+            end
+        case 3
+            if(best_path(k+1)==2)
+                output = [output 0];
+            else
+                output = [output 1];
+            end
+        otherwise
+            fprintf('error');
+    end
+end
+ 
+u
+output
