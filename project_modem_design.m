@@ -194,32 +194,32 @@ for (n=0:1000000)
     Pi = Pi0.*Pi;
     Ptot = sum(Pi);
     if(abs(Pmax-Ptot)<0.01)
-     %End of algorithm
+        %End of algorithm
         Ptot;
-        break; 
+        break;
     elseif(Pmax>Ptot)
-        %Too Few power 
+        %Too Few power
         mu = mu +0.0001;
     elseif(Pmax<Ptot)
         %Too much power
         mu = mu - 0.0001;
-    end 
+    end
 end
 
 %Hff = [h(1)*ones(1,16) h(2)*ones(1,16) h(3)*ones(1,16) h(4)*ones(1,16) h(5)*ones(1,16) h(6)*ones(1,16) h(7)*ones(1,16) h(8)*ones(1,16)];
 Hff = Hf;
 
 f1 = figure(99);
-    clf;
-    set(f1,'Color',[1 1 1]);
-    bar(Pi +N0./(abs(Hff).^2),1,'r')
-    hold on;    
-    bar(N0./abs(Hff).^2,1);
-    xlabel('subchannel indices');
-    title('Water filling algorithm')
-    
-   % legend('amount of power allocated to each subchannel',...
-         %  'Noise to Carrier Ratio')
+clf;
+set(f1,'Color',[1 1 1]);
+bar(Pi +N0./(abs(Hff).^2),1,'r')
+hold on;
+bar(N0./abs(Hff).^2,1);
+xlabel('subchannel indices');
+title('Water filling algorithm')
+
+% legend('amount of power allocated to each subchannel',...
+%  'Noise to Carrier Ratio')
 %%%%%%%%%%%%%%%%%%%%%%
 %%%Bits performance
 %%%%%%%%%%%%%%%%%%%%%%
@@ -229,7 +229,7 @@ Gamma = 2/3*((erfcinv(Petarg/2))^2);
 %- Water-filling distribution power
 BitsWF = 1/2*log(1+(Pi.*(abs(Hf).^2))./(N0*Gamma))/log(2);%
 %-Power uniformly distributed
-BitsPowerUniform = 1/2*log(1+(Pmax/Nb.*(abs(Hf).^2).*ones(1,Nb)./(N0*Gamma)))/log(2);%.*(abs(Hff).^2 
+BitsPowerUniform = 1/2*log(1+(Pmax/Nb.*(abs(Hf).^2).*ones(1,Nb)./(N0*Gamma)))/log(2);%.*(abs(Hff).^2
 
 figure();
 hold on;
@@ -245,38 +245,38 @@ Pmax = 100;
 N0 = 0.01;
 for (n=0:1000000)
     Pi = sqrt(N0./Hff.^2./(-lambda));
-    Pi0 = Pi>0;
-    Pi = Pi0.*Pi;
+    %Pi0 = Pi>0;
+    %Pi = Pi0.*Pi;
     Ptot = sum(Pi);
     if(abs(Pmax-Ptot)<0.01)
-     %End of algorithm
+        %End of algorithm
         Ptot;
-        break; 
+        break;
     elseif(Pmax>Ptot)
-        %Too Few power 
+        %Too Few power
         lambda = lambda + 0.00001;
     elseif(Pmax<Ptot)
         %Too much power
         lambda = lambda - 0.00001;
-    end 
+    end
     %lambda
 end
 
 f1 = figure(98);
-    clf;
-    set(f1,'Color',[1 1 1]);
-    bar(Pi +N0./(abs(Hff).^2),1,'r')
-    hold on;    
-    bar(N0./abs(Hff).^2,1);
-    xlabel('subchannel indices');
-    title('Power allacation-False Bonus')
-    
- Petarg = 10^-5;
+clf;
+set(f1,'Color',[1 1 1]);
+bar(Pi +N0./(abs(Hff).^2),1,'r')
+hold on;
+bar(N0./abs(Hff).^2,1);
+xlabel('subchannel indices');
+title('Power allacation-False Bonus')
+
+Petarg = 10^-5;
 Gamma = 2/3*((erfcinv(Petarg/2))^2);
 %- Water-filling distribution power
 BitsBonus = 1/2*log(1+(Pi)./(N0*Gamma))/log(2);%
 %-Power uniformly distributed
-%BitsPowerUniform = 1/2*log(1+(Pmax/Nb*ones(1,Nb).*(abs(Hff).^2))./(N0*Gamma))/log(2);%.*(abs(Hff).^2 
+%BitsPowerUniform = 1/2*log(1+(Pmax/Nb*ones(1,Nb).*(abs(Hff).^2))./(N0*Gamma))/log(2);%.*(abs(Hff).^2
 
 figure();
 hold on;
@@ -309,7 +309,7 @@ for index_SNR=1:Nsnr
         end
         bitstraining = [ones(1,Nb/2); -1*ones(1,Nb/2)]; %randi([0 1],1,Nb);
         maptraining = zeros(1,Nb);
-        for i = 1:Nb/2 
+        for i = 1:Nb/2
             maptraining(2*i-1) = bitstraining(1,i);
             maptraining(2*i) = bitstraining(2,i);
         end
@@ -359,8 +359,8 @@ for index_SNR=1:Nsnr
         %identity = traindague.'.*training;
         hhat = traindague.*testtraining;
         %hhat = hhat.';
-      %  figure(10);
-       % plot(1:8,[mean(abs(hhat(1,:))) mean(abs(hhat(2,:))) mean(abs(hhat(3,:))) mean(abs(hhat(4,:))) mean(abs(hhat(5,:))) mean(abs(hhat(6,:))) mean(abs(hhat(7,:))) mean(abs(hhat(8,:)))]);
+        %  figure(10);
+        % plot(1:8,[mean(abs(hhat(1,:))) mean(abs(hhat(2,:))) mean(abs(hhat(3,:))) mean(abs(hhat(4,:))) mean(abs(hhat(5,:))) mean(abs(hhat(6,:))) mean(abs(hhat(7,:))) mean(abs(hhat(8,:)))]);
         %hhat = hhat;%(1:16:end); % taking Each 16 elements of Hf in order to have 8 taps (Sampling method)
         %hhat in frequency
         %First, filter to remove the "noise padding"
@@ -410,6 +410,12 @@ plot(Es_N0_dB,MSE);
 
 %% Step 4 :Optimal Viterbi decoding
 
+N = 128; %number of subcarrier
+f_0 = 2E9; %carrier frequency
+f_sub = 15E3; %carrier subspacing
+L = 16; %cyclic prefix length
+Nb = N; % block size
+
 L = 16; % Cyclic prefix length
 Lf = 128; % Input sequence size
 %Lf = 8; % Test input sequence size
@@ -430,7 +436,6 @@ end
 x(x==3) = 1;
 x(x==2) = 0;
 
-%======================= Es=1 and N0=0.1 ==================================
 N0 = 0.1;
 % 2) Symbol mapping
 map = x;
@@ -440,10 +445,6 @@ symbols = zeros(Lf,1); % One OFDM symbol
 for r=1:Lf
     symbols(r)=map(1,r)+1i*map(2,r);
 end
-figure(1);
-x = real(symbols); y = imag(symbols);
-scatter(x,y,40,'o','filled','r'); title('Tx constellation','Fontsize',16);
-xlabel('In phase amplitude','Fontsize',14); ylabel('Quandrature amplitude','Fontsize',14);
 % 3) Seriel to parralel
 parallel = symbols; % each column is a block of 128 symbols
 % 4) IFFT on the blocks
@@ -454,7 +455,7 @@ paralel_CP = [CP ; parallel];
 % 6) parallel to serial
 serial = paralel_CP(:,1).';
 % 7) AWGN channel
-y = conv(h_true,serial)+ randn(size(conv(h_true,serial)))*sqrt(N0/2)+ randn(size(conv(h_true,serial)))*sqrt(N0/2)*1i;
+y = serial+ randn(size(serial))*sqrt(N0/2)+ randn(size(serial))*sqrt(N0/2)*1i;%conv(h_true,serial)+ randn(size(conv(h_true,serial)))*sqrt(N0/2)+ randn(size(conv(h_true,serial)))*sqrt(N0/2)*1i;
 % 8) serial to parralel
 y=y.';
 parallelRx = y(1:(Lf+L));
@@ -464,16 +465,96 @@ parallelRx = parallelRx((L+1):end,:);
 parallelRx = fft(parallelRx)/sqrt(Nb);
 % 11) parallel to serial
 output = parallelRx(:,1).';
-figure(4);
-x = real(output); y = imag(output);
-scatter(x,y,40,'o','filled','r'); title('Rx constellation','Fontsize',16);
-xlabel('In phase amplitude','Fontsize',14); ylabel('Quandrature amplitude','Fontsize',14);
 % 12) demapping
-output_bits = zeros(Lf,1);
+coded_output_bits = zeros(Lf,1);
 for r=1:Lf
-    output_bits(2*r-1)=real(output(r));
-    output_bits(2*r)=imag(output(r));
+    coded_output_bits(2*r-1)=real(output(r));
+    coded_output_bits(2*r)=imag(output(r));
 end
 % 13) decision
-output_bits(output_bits<=0)=0;
-output_bits(output_bits>0)=1;
+%coded_output_bits(coded_output_bits<=0)=0;
+%coded_output_bits(coded_output_bits>0)=1;
+
+coded_output_bits
+%=================== Viterbi decoding =====================================
+
+% states are 0, 1, 2 or 3
+state_table=[0]; % starting state
+distance = [0]; % starting distance
+
+% find the best path
+for iter = 1:Lf
+    
+    % create the matrix of the new possible paths
+    a1 = state_table(:,end);
+    a1(a1==0)= 0;
+    a1(a1==2)= 0;
+    a1(a1==1)= 2;
+    a1(a1==3)= 2;
+    a2 = state_table(:,end);
+    a2(a2==3)= 3;
+    a2(a2==1)= 3;
+    a2(a2==0)= 1;
+    a2(a2==2)= 1;
+    a = [a1 ;a2];
+    state_table = [state_table ; state_table];
+    state_table = [state_table a];
+    
+    % update the matrix of cumulative distance
+    distance = [distance distance];
+    twolast = [state_table(:,end-1) state_table(:,end)];
+    [not yep] = size(distance);
+    for k = 1:yep
+        switch(twolast(k,1))
+            case 0
+                if(twolast(k,2)==0)
+                    distance(1,k)=distance(1,k)+(coded_output_bits(2*k-1)+1)^2+(coded_output_bits(2*k)+1)^2;
+                else
+                    distance(1,k)=distance(1,k)+(coded_output_bits(2*k-1)-1)^2+(coded_output_bits(2*k)-1)^2;
+                end
+            case 1
+                if(twolast(k,2)==2)
+                    distance(1,k)=distance(1,k)+(coded_output_bits(2*k-1)+1)^2+(coded_output_bits(2*k)-1)^2;
+                else
+                    distance(1,k)=distance(1,k)+(coded_output_bits(2*k-1)-1)^2+(coded_output_bits(2*k)+1)^2;
+                end
+            case 2
+                if(twolast(k,2)==0)
+                    distance(1,k)=distance(1,k)+(coded_output_bits(2*k-1)-1)^2+(coded_output_bits(2*k)-1)^2;
+                else
+                    distance(1,k)=distance(1,k)+(coded_output_bits(2*k-1)+1)^2+(coded_output_bits(2*k)+1)^2;
+                end
+            case 3
+                if(twolast(k,2)==2)
+                    distance(1,k)=distance(1,k)+(coded_output_bits(2*k-1)-1)^2+(coded_output_bits(2*k)+1)^2;
+                else
+                    distance(1,k)=distance(1,k)+(coded_output_bits(2*k-1)+1)^2+(coded_output_bits(2*k)-1)^2;
+                end
+            otherwise
+                fprintf('error');
+        end
+    end
+    % supress paths that lead to a same state but with higher cumuative distance
+    result = [];
+    newDist = [];
+    for k = 0:3
+        index = find(state_table(:,end)==k);
+        if (isempty(index)==0)
+            A = state_table(index,:);
+            B = distance(index);
+            [M I] = max(B);
+            result = [result ; A(I,:)];
+            newDist = [newDist B(I)];
+        end
+    end
+    state_table = result;
+    distance = newDist;
+end
+
+%indpath = find(state_table(:,end)==0);
+best_path = state_table%(indpath,:);
+best_dist = distance%(indpath);
+
+% interpreting the best path into a bit sequence
+% TO FILL
+
