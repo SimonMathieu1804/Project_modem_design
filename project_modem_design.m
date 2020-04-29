@@ -408,7 +408,10 @@ figure(100);
 plot(Es_N0_dB,MSE);
 
 
-%% Step 4 :Optimal Viterbi decoding
+%% Step 4 :Optimal Viterbi soft decoding 
+% for the moment it is done on a single sequence and with no noise => not
+% finished
+
 
 N = 128; %number of subcarrier
 f_0 = 2E9; %carrier frequency
@@ -436,7 +439,7 @@ end
 x(x==3) = 1;
 x(x==2) = 0;
 
-N0 = 0.1;
+N0 = 0;%0.01;
 % 2) Symbol mapping
 map = x;
 map(map==0) = -1;
@@ -475,7 +478,7 @@ end
 %coded_output_bits(coded_output_bits<=0)=0;
 %coded_output_bits(coded_output_bits>0)=1;
 
-coded_output_bits
+%coded_output_bits
 %=================== Viterbi decoding =====================================
 
 % states are 0, 1, 2 or 3
@@ -508,32 +511,33 @@ for iter = 1:Lf
         switch(twolast(k,1))
             case 0
                 if(twolast(k,2)==0)
-                    distance(1,k)=distance(1,k)+(coded_output_bits(2*k-1)+1)^2+(coded_output_bits(2*k)+1)^2;
+                    distance(1,k)=distance(1,k)+(coded_output_bits(2*iter-1)+sqrt(2)/2)^2+(coded_output_bits(2*iter)+sqrt(2)/2)^2;
                 else
-                    distance(1,k)=distance(1,k)+(coded_output_bits(2*k-1)-1)^2+(coded_output_bits(2*k)-1)^2;
+                    distance(1,k)=distance(1,k)+(coded_output_bits(2*iter-1)-sqrt(2)/2)^2+(coded_output_bits(2*iter)-sqrt(2)/2)^2;
                 end
             case 1
                 if(twolast(k,2)==2)
-                    distance(1,k)=distance(1,k)+(coded_output_bits(2*k-1)+1)^2+(coded_output_bits(2*k)-1)^2;
+                    distance(1,k)=distance(1,k)+(coded_output_bits(2*iter-1)-sqrt(2)/2)^2+(coded_output_bits(2*iter)-sqrt(2)/2)^2;
                 else
-                    distance(1,k)=distance(1,k)+(coded_output_bits(2*k-1)-1)^2+(coded_output_bits(2*k)+1)^2;
+                    distance(1,k)=distance(1,k)+(coded_output_bits(2*iter-1)+sqrt(2)/2)^2+(coded_output_bits(2*iter)+sqrt(2)/2)^2;
                 end
             case 2
                 if(twolast(k,2)==0)
-                    distance(1,k)=distance(1,k)+(coded_output_bits(2*k-1)-1)^2+(coded_output_bits(2*k)-1)^2;
+                    distance(1,k)=distance(1,k)+(coded_output_bits(2*iter-1)+sqrt(2)/2)^2+(coded_output_bits(2*iter)-sqrt(2)/2)^2;
                 else
-                    distance(1,k)=distance(1,k)+(coded_output_bits(2*k-1)+1)^2+(coded_output_bits(2*k)+1)^2;
+                    distance(1,k)=distance(1,k)+(coded_output_bits(2*iter-1)-sqrt(2)/2)^2+(coded_output_bits(2*iter)+sqrt(2)/2)^2;
                 end
             case 3
                 if(twolast(k,2)==2)
-                    distance(1,k)=distance(1,k)+(coded_output_bits(2*k-1)-1)^2+(coded_output_bits(2*k)+1)^2;
+                    distance(1,k)=distance(1,k)+(coded_output_bits(2*iter-1)-sqrt(2)/2)^2+(coded_output_bits(2*iter)+sqrt(2)/2)^2;
                 else
-                    distance(1,k)=distance(1,k)+(coded_output_bits(2*k-1)+1)^2+(coded_output_bits(2*k)-1)^2;
+                    distance(1,k)=distance(1,k)+(coded_output_bits(2*iter-1)+sqrt(2)/2)^2+(coded_output_bits(2*iter)-sqrt(2)/2)^2;
                 end
             otherwise
                 fprintf('error');
         end
     end
+
     % supress paths that lead to a same state but with higher cumuative distance
     result = [];
     newDist = [];
@@ -541,7 +545,7 @@ for iter = 1:Lf
         index = find(state_table(:,end)==k);
         if (isempty(index)==0)
             A = state_table(index,:);
-            B = distance(index);
+            B = distance(1,index);
             [M I] = min(B);
             result = [result ; A(I,:)];
             newDist = [newDist B(I)];
@@ -586,6 +590,4 @@ for k = 1:length(best_path)-1
             fprintf('error');
     end
 end
- 
-u
-output
+
