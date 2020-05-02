@@ -1,6 +1,6 @@
 %% LELEC2880: Modem design - Project : Simulation
 % Authors: DE COCK Justin, DELHAYE Quentin, SIMON Mathieu
-% Date: 12/04/20
+% Date: 02/05/20
 
 %% begining of the simulation
 format long;
@@ -29,8 +29,8 @@ for k=1:4*Nb
 end
 figure(1);
 x = real(symbols); y = imag(symbols);
-scatter(x,y,40,'o','filled','r'); title('Tx constellation','Fontsize',16);
-xlabel('In phase amplitude','Fontsize',14); ylabel('Quandrature amplitude','Fontsize',14);
+scatter(x,y,40,'o','filled','r'); title('Tx constellation','Fontsize',16,'interpreter','latex');
+xlabel('In phase amplitude','Fontsize',14,'interpreter','latex'); ylabel('Quadrature amplitude','Fontsize',14,'interpreter','latex');
 % 3) Seriel to parralel
 parallel = [symbols(1:Nb) symbols(Nb+1:2*Nb) symbols(2*Nb+1:3*Nb) symbols(3*Nb+1:4*Nb)]; % each column is a block of 256 symbols
 % 4) IFFT on the blocks
@@ -69,8 +69,8 @@ parallelRx = fft(parallelRx)/sqrt(Nb);
 output = [parallelRx(:,1).' parallelRx(:,2).' parallelRx(:,3).' parallelRx(:,4).'];
 figure(4);
 x = real(output); y = imag(output);
-scatter(x,y,40,'o','filled','r'); title('Rx constellation','Fontsize',16);
-xlabel('In phase amplitude','Fontsize',14); ylabel('Quandrature amplitude','Fontsize',14);
+scatter(x,y,40,'o','filled','r'); title('Rx constellation','Fontsize',16,'interpreter','latex');
+xlabel('In phase amplitude','Fontsize',14,'interpreter','latex'); ylabel('Quadrature amplitude','Fontsize',14,'interpreter','latex');
 % 12) demapping
 output_bits = zeros(4*2*Nb,1);
 for k=1:4*Nb
@@ -154,7 +154,8 @@ semilogy(Es_N0_dB,theoretical_BER,'-r','LineWidth',1.5);
 hold on;
 semilogy(Es_N0_dB,BER/2,'-xb','LineWidth',1.5,'MarkerSize',8);
 grid;
-xlabel('E_S/N_0 [dB]'); ylabel('SER'); legend('Theory (4QAM)','Simulated');
+xlabel('$E_S/N_0$ [dB]','interpreter','latex'); ylabel('BER','interpreter','latex'); legend('Theoretical (4QAM)','Simulated');
+title('BER vs $E_S/N_0$','Fontsize',16,'interpreter','latex');
 
 %% Step 2 bonus : Power allocation only
 
@@ -399,10 +400,9 @@ title('The mean-square error of the channel estimation in function of the SNR','
 xlabel('SNR [dB]','interpreter','Latex');
 ylabel('MSE/MSE(N0=0[dB])','interpreter','latex');
 
-%% Step 4 : test
-% for the moment it is done on a single sequence and with no noise => not
-% finished
+%% Step 4 : Optimal Viterbi (soft) decoding
 
+%====================== With an AWGN channel ==============================
 
 N = 128; %number of subcarrier
 f_0 = 2E9; %carrier frequency
@@ -415,23 +415,19 @@ Lf = 128; % Input sequence size
 g = [1 1 0;1 1 1]; % Convolutional code
 [n,K] = size(g); % length of the code
 k = 1; % rank of the code
+N0 = 0.01;
 
-
+% 1) generate 128 random bits and code them
 u = randi([0 1],1,Lf); % Input sequence
-%u = [1 1 0 1 0 1 0 0]; % Test input sequence
 x = zeros(n,Lf); % Coded sequence
-
 u_pad = [zeros(1,n) u];
 for i = 1:Lf
     t = i+2;
     x(1,i) = sum(u_pad(i:t).*(flip(g(1,:))));
     x(2,i) = sum(u_pad(i:t).*(flip(g(2,:))));
 end
-
 x(x==3) = 1;
 x(x==2) = 0;
-
-N0 = 0;%0.01;
 % 2) Symbol mapping
 map = x;
 map(map==0) = -1;
@@ -449,14 +445,8 @@ CP = parallel(end-L+1:end);
 paralel_CP = [CP ; parallel];
 % 6) parallel to serial
 serial = paralel_CP(:,1).';
-
-% 7) channel
-% long = 8;
-% h = raylrnd(1:long) + 1i*raylrnd(1:long);
-% h = h./norm(h);
-% y = conv(h,serial)+ randn(size(conv(h,serial)))*sqrt(N0/2)+ randn(size(conv(h,serial)))*sqrt(N0/2)*1i;
+% 7) AWGN channel
 y = serial+ randn(size(serial))*sqrt(N0/2)+ randn(size(serial))*sqrt(N0/2)*1i;
-
 % 8) serial to parralel
 y=y.';
 parallelRx = y(1:(Lf+L));
@@ -472,14 +462,8 @@ for r=1:Lf
     coded_output_bits(2*r-1)=real(output(r));
     coded_output_bits(2*r)=imag(output(r));
 end
-% 13) decision
-%coded_output_bits(coded_output_bits<=0)=0;
-%coded_output_bits(coded_output_bits>0)=1;
 
-%coded_output_bits
-
-
-%=================== Viterbi decoding =====================================
+%---------------------------- Viterbi decoding
 
 % states are 0, 1, 2 or 3
 state_table=[0]; % starting state
@@ -554,16 +538,15 @@ for iter = 1:Lf
     state_table = result;
     distance = newDist;
 end
-
 [best_dist, indpath] = min(distance);
 best_path = state_table(indpath,:);
 
 % interpreting the best path into the bit sequence
 output = mod(best_path(2:end),2);
+error = sum(abs(u - output)); 
 
-error = sum(abs(u - output))
 
-%% Step 4 :Optimal Viterbi soft decoding
+%====================== With a channel h ==================================
 
 N = 128; %number of subcarrier
 f_0 = 2E9; %carrier frequency
@@ -580,22 +563,20 @@ k = 1; % rank of the code
 Nber=20; %%Changed 20 before
 Es_N0_dB=linspace(0,20,Nber);
 Es_N0=10.^(Es_N0_dB/10);
+BER1=zeros(Nber,1); % to make the graph for Modified Viterbi with estimation
+BER2=zeros(Nber,1); % to make the graph for Classical Viterbi
+BER3=zeros(Nber,1); % to make the graph for Modified Viterbi with perfect knowledge of h
 
-BER1=zeros(Nber,1);
-BER2=zeros(Nber,1);
-BER3=zeros(Nber,1);
-
+% run several time in order to make the different graphs
 for graph = 1:3
     
     BER=zeros(Nber,1);
     for index_BER=1:Nber
-        
         for iterations = 1:100
             N0=1/Es_N0(index_BER);
-            %---------------------------
-            % 1) vector of 128 random bits
-            u = randi([0 1],1,Lf); % Input sequence
-            %u = [1 1 0 1 0 1 0 0]; % Test input sequence
+            
+            % 1) vector of 128 random bits and code it
+            u = randi([0 1],1,Lf); 
             x = zeros(n,Lf); % Coded sequence
             u_pad = [zeros(1,n) u];
             for i = 1:Lf
@@ -605,8 +586,7 @@ for graph = 1:3
             end
             x(x==3) = 1;
             x(x==2) = 0;
-            
-            % 2) Symbol mapping
+            % 2) Symbol mapping and insert the training sequence
             map = x;
             map(map==0) = -1;
             map = sqrt(2)/2*map;
@@ -630,18 +610,11 @@ for graph = 1:3
             paralel_CP = [CP ; parallel];
             % 6) parallel to serial
             serial = [paralel_CP(:,1).' paralel_CP(:,2).'];
-            %y = serial+ randn(size(serial))*sqrt(N0/2)+ randn(size(serial))*sqrt(N0/2)*1i;
-            % 7) AWGN channel + real channel
-            %h = +0*1i;
+            % 7) Create the real channel and apply it on the data
             long = 8;
             h = raylrnd(1:long) + 1i*raylrnd(1:long);
-            %h = h/1000;
-            %h = raylrnd(1:8) + 1i*raylrnd(1:8);
             h = h./norm(h);
-            %%%Channel created%%%%%%%%%%%%%%%%%%%%%%%
             y = conv(h,serial)+ randn(size(conv(h,serial)))*sqrt(N0/2)+ randn(size(conv(h,serial)))*sqrt(N0/2)*1i;
-            %size(h)
-            %size(serial)
             % 8) serial to parralel
             y=y.';
             parallelRx = [y(1:(Lf+L)) y((Lf+L)+1:2*(Lf+L))];
@@ -649,59 +622,32 @@ for graph = 1:3
             parallelRx = parallelRx((L+1):end,:);
             % 10) FFT on the blocks
             parallelRx = fft(parallelRx)/sqrt(Lf);
-            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-            % CHANNEL ESTIMATION%%%%%%%%%%%%%%
-            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            % 11) channel estimation
             test = parallelRx(:,1);
-            %testtraining = test((L+1):end);
             testtraining = test;
             traindague = pinv(training, 10^-5);
-            %training = training.',
-            %identity = traindague.'.*training;
             hhat = traindague.*testtraining;
-            %hhat = hhat.';
-            %  figure(10);
-            % plot(1:8,[mean(abs(hhat(1,:))) mean(abs(hhat(2,:))) mean(abs(hhat(3,:))) mean(abs(hhat(4,:))) mean(abs(hhat(5,:))) mean(abs(hhat(6,:))) mean(abs(hhat(7,:))) mean(abs(hhat(8,:)))]);
-            %hhat = hhat;%(1:16:end); % taking Each 16 elements of Hf in order to have 8 taps (Sampling method)
-            %hhat in frequency
-            %First, filter to remove the "noise padding"
-            %Second, sampling => To have eight taps.
-            %figure(11);
-            %stem(1:length(h),abs(h));
-            %estimee = [mean(abs(hhat(1,:))) mean(abs(hhat(2,:))) mean(abs(hhat(3,:))) mean(abs(hhat(4,:))) mean(abs(hhat(5,:))) mean(abs(hhat(6,:))) mean(abs(hhat(7,:))) mean(abs(hhat(8,:)))]
             hguess = (Lf)*(ifft(hhat));
-            
-            %hguess = hguess;%/norm(hguess);
             estimee = [hguess(1) hguess(2) hguess(3) hguess(4) hguess(5) hguess(6) hguess(7) hguess(8) zeros(1,Lf-8)];
             if(graph==3)
                 estimee = [h zeros(1,Lf-8)];
             end
             estimation = fft(estimee)/Lf;
-            %(h)
-            %figure(20);
-            %stem(1:length(hguess), abs(hguess))
-            %size(hhat)
-            %abs(hhat(2,:))
-            % 11) parallel to serial
+            % 12) parallel to serial and equalization
             outtraining = parallelRx(:,1).';
             output_seq = parallelRx(:,2).'./estimation;
-            % 12) demapping
+            % 13) demapping
             output_bits = zeros(Lf,1);
             for k=1:Lf
                 output_bits(2*k-1)=real(output_seq(k));
                 output_bits(2*k)=imag(output_seq(k));
             end
-            
             coded_output_bits = output_bits;
-            
-            % line to comment if want tu use new version of viterbi
             if(graph==2)
                 estimation = ones(1,Lf);
             end
             
-            %---------------------------
-            
-            %=================== Viterbi decoding =====================================
+            %--------------------------- Viterbi decoding 
             
             % states are 0, 1, 2 or 3
             state_table=[0]; % starting state
@@ -783,9 +729,7 @@ for graph = 1:3
             % interpreting the best path into the bit sequence
             output = mod(best_path(2:end),2);
             
-            
-            
-            %---------------------------
+            %---------------------------------
             
             BER(index_BER)=BER(index_BER)+sum(output~=u);
         end
@@ -801,12 +745,13 @@ for graph = 1:3
     end
 end
 
-semilogy(Es_N0_dB,BER1,'-xr','LineWidth',1.5,'MarkerSize',8);
-hold on;
 semilogy(Es_N0_dB,BER2,'-xb','LineWidth',1.5,'MarkerSize',8);
 hold on; 
+semilogy(Es_N0_dB,BER1,'-xr','LineWidth',1.5,'MarkerSize',8);
+hold on;
 semilogy(Es_N0_dB,BER3,'-xg','LineWidth',1.5,'MarkerSize',8);
 grid;
-xlabel('E_S/N_0 [dB]'); ylabel('BER'); 
-legend('Modified Viterbi with estimation','Classical Viterbi','Modified Viterbi with perfect knowledge');
+xlabel('$E_S/N_0$ [dB]','Fontsize',14,'interpreter','latex'); ylabel('BER','Fontsize',14,'interpreter','latex'); 
+legend('Classical Viterbi','Modified Viterbi with estimation','Modified Viterbi with perfect knowledge');
+title('viterbi: BER vs $E_S/N_0$','Fontsize',16,'interpreter','latex');
 
