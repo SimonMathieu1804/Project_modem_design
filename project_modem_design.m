@@ -139,7 +139,7 @@ for index_SNR=1:Nsnr
         %N_symbols = 4*2*Nb;
         BER(index_SNR)=BER(index_SNR)+sum(output_bits.'~=bits);%/N_symbols;
     end
-    N_symbols = 4*2*Nb*5;
+    N_symbols = 4*2*Nb*20;
     BER(index_SNR)=BER(index_SNR)/N_symbols;
 end
 
@@ -147,12 +147,12 @@ end
 k=4;
 M=2^k;
 x=sqrt(3*k*Es_N0/(M-1));
-theoretical_BER=erfc(sqrt(0.5*(10.^(Es_N0_dB/10)))) - (1/4)*(erfc(sqrt(0.5*(10.^(Es_N0_dB/10))))).^2;
+theoretical_SER=erfc(sqrt(0.5*(10.^(Es_N0_dB/10)))) - (1/4)*(erfc(sqrt(0.5*(10.^(Es_N0_dB/10))))).^2;
 
 figure(5);
-semilogy(Es_N0_dB,theoretical_BER,'-r','LineWidth',1.5);
+semilogy(Es_N0_dB,theoretical_SER/2,'-r','LineWidth',1.5);
 hold on;
-semilogy(Es_N0_dB,BER/2,'-xb','LineWidth',1.5,'MarkerSize',8);
+semilogy(Es_N0_dB,BER,'-xb','LineWidth',1.5,'MarkerSize',8);
 grid;
 xlabel('$E_S/N_0$ [dB]','interpreter','latex'); ylabel('BER','interpreter','latex'); legend('Theoretical (4QAM)','Simulated');
 title('BER vs $E_S/N_0$','Fontsize',16,'interpreter','latex');
