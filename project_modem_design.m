@@ -185,7 +185,7 @@ hzeropad = [h.' zeros(1,N-length(h))];
 Hf = fft(hzeropad);
 Hf = fftshift(abs(Hf))/sqrt(Nb);
 
-Pmax = sum(1./abs(Hf).^2);
+Pmax = sum(1./abs(Hf).^2)*128;
 
 %Hf = Hf/norm(Hf);
 figure(21);
@@ -576,13 +576,14 @@ Es_N0=10.^(Es_N0_dB/10);
 BER1=zeros(Nber,1); % to make the graph for Modified Viterbi with estimation
 BER2=zeros(Nber,1); % to make the graph for Classical Viterbi
 BER3=zeros(Nber,1); % to make the graph for Modified Viterbi with perfect knowledge of h
+BER4=zeros(Nber,1); %to make the graph for no coding
 
 % run several time in order to make the different graphs
-for graph = 1:3
+for graph = 1:4
     
     BER=zeros(Nber,1);
     for index_BER=1:Nber
-        for iterations = 1:100
+        for iterations = 1:1000
             N0=1/Es_N0(index_BER);
             
             % 1) vector of 128 random bits and code it
@@ -596,6 +597,10 @@ for graph = 1:3
             end
             x(x==3) = 1;
             x(x==2) = 0;
+            if(graph==4)
+                x(1,:)= randi([0 1],1,Lf);
+                x(2,:)= randi([0 1],1,Lf);
+            end
             % 2) Symbol mapping and insert the training sequence
             map = x;
             map(map==0) = -1;
@@ -740,18 +745,32 @@ for graph = 1:3
             output = mod(best_path(2:end),2);
             
             %---------------------------------
-            
-            BER(index_BER)=BER(index_BER)+sum(output~=u);
+            if(graph==4)
+                output = coded_output_bits;
+                output(output>0)=1;
+                output(output<0)=0;
+                fourth = [x(1,:); x(2,:)];
+                fourth = fourth(:).';
+                fourth = fourth.';
+                BER(index_BER)=BER(index_BER)+sum(output~=fourth);
+            else
+                BER(index_BER)=BER(index_BER)+sum(output~=u);
+            end
         end
-        N_bits = Lf*100;
+        N_bits = Lf*1000;
+        if(graph==4)
+            N_bits=N_bits*2;
+        end
         BER(index_BER)=BER(index_BER)/N_bits;
     end
     if(graph == 1)
         BER1=BER;
     elseif (graph == 2)
         BER2=BER;
-    else
+    elseif (graph ==3)
         BER3=BER;
+    else 
+        BER4=BER;
     end
 end
 
@@ -760,8 +779,10 @@ hold on;
 semilogy(Es_N0_dB,BER1,'-xr','LineWidth',1.5,'MarkerSize',8);
 hold on;
 semilogy(Es_N0_dB,BER3,'-xg','LineWidth',1.5,'MarkerSize',8);
+hold on;
+semilogy(Es_N0_dB,BER4,'-xm','LineWidth',1.5,'MarkerSize',8);
 grid;
 xlabel('$E_S/N_0$ [dB]','Fontsize',14,'interpreter','latex'); ylabel('BER','Fontsize',14,'interpreter','latex'); 
-legend('Classical Viterbi','Modified Viterbi with estimation','Modified Viterbi with perfect knowledge');
-title('viterbi: BER vs $E_S/N_0$','Fontsize',16,'interpreter','latex');
+legend('Classical Viterbi','Modified Viterbi with estimation','Modified Viterbi with perfect knowledge', 'without coding');
+title('Viterbi: BER vs $E_S/N_0$','Fontsize',16,'interpreter','latex');
 
