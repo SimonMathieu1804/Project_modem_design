@@ -583,7 +583,7 @@ for graph = 1:4
     
     BER=zeros(Nber,1);
     for index_BER=1:Nber
-        for iterations = 1:1000
+        for iterations = 1:50
             N0=1/Es_N0(index_BER);
             
             % 1) vector of 128 random bits and code it
@@ -757,7 +757,7 @@ for graph = 1:4
                 BER(index_BER)=BER(index_BER)+sum(output~=u);
             end
         end
-        N_bits = Lf*1000;
+        N_bits = Lf*50;
         if(graph==4)
             N_bits=N_bits*2;
         end
