@@ -244,7 +244,7 @@ hold on;
 plot(1:128,BitsWF,'LineWidth',1.5,'MarkerSize',8);
 plot(1:128,BitsPowerUniform,'LineWidth',1.5,'MarkerSize',8);
 xlabel('Subcarrier','interpreter','latex'); ylabel('bits per symbol','interpreter','latex'); legend('Waterfilling','Uniform power allocation');
-title('Number of bits per symbol for each subchannel','Fontsize',16,'interpreter','latex');
+title('Number of bits per symbol for each','Fontsize',16,'interpreter','latex');
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%
@@ -252,7 +252,6 @@ title('Number of bits per symbol for each subchannel','Fontsize',16,'interpreter
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 lambda = -0.5;
 Pmax = 128*3;
-%Pmax = sum(1./abs(Hf).^2);
 N0 = 0.01;
 for (n=0:1000000)
     Pi = sqrt(N0./Hff.^2./(-lambda));
@@ -279,8 +278,8 @@ set(f1,'Color',[1 1 1]);
 bar(Pi +N0./(abs(Hff).^2),1,'r')
 hold on;
 bar(N0./abs(Hff).^2,1);
-xlabel('subchannel indices','interpreter','latex','Fontsize',14);
-title('Power allocation with MSE criterion','interpreter','latex','Fontsize',16)
+xlabel('subchannel indices');
+title('Power allacation-False Bonus')
 
 Petarg = 10^-5;
 Gamma = 2/3*((erfcinv(Petarg/2))^2);
