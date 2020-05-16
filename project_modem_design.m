@@ -173,9 +173,8 @@ load('CIR.mat')
 %fvtool(h,'impulse'); % Plot the filter
 %fvtool(h,'freq');
 Eh = h'*h
-Pmax = 128; %1
-Ptot = 0;
-mu = 1500; %0.5
+%Pmax = 128; %1
+mu = 150; %0.5
 Pi = zeros(1,N);
 N0 = 0.01;%6.66E-7;%0.000035;
 
@@ -183,9 +182,12 @@ N0 = 0.01;%6.66E-7;%0.000035;
 hzeropad = h;
 hzeropad = [h.' zeros(1,N-length(h))];
 Hf = fft(hzeropad);
-Hf = fftshift(abs(Hf))/sqrt(Nb);
+Hf = fftshift(abs(Hf))/sqrt(8);
 
-Pmax = sum(1./abs(Hf).^2)*128;
+%Pmax = sum(1./abs(Hf).^2)*128;
+E_on_N=100;
+Pmax=1;
+sigmaN = 1/N/E_on_N;
 
 %Hf = Hf/norm(Hf);
 figure(21);
@@ -197,7 +199,7 @@ title('Channel frequency response','Fontsize',16,'interpreter','latex');
 %Hf = [h(1)*ones(1,16) h(2)*ones(1,16) h(3)*ones(1,16) h(4)*ones(1,16) h(5)*ones(1,16) h(6)*ones(1,16) h(7)*ones(1,16) h(8)*ones(1,16)];
 
 for (n=0:10000000)
-    Pi = ((mu*(abs(Hf).^2)-N0)./(abs(Hf).^2));
+    Pi = ((mu*(abs(Hf).^2)-sigmaN)./(abs(Hf).^2));
     Pi0 = Pi>0;
     Pi = Pi0.*Pi;
     Ptot = sum(Pi);
@@ -220,9 +222,9 @@ Hff = Hf;
 f1 = figure(99);
 clf;
 set(f1,'Color',[1 1 1]);
-bar(Pi +N0./(abs(Hff).^2),1,'r')
+bar(Pi +sigmaN./(abs(Hff).^2),1,'r')
 hold on;
-bar(N0./abs(Hff).^2,1);
+bar(sigmaN./abs(Hff).^2,1);
 xlabel('subchannel indices','interpreter','latex','Fontsize',14);
 title('Water filling algorithm','interpreter','latex','Fontsize',16)
 
@@ -235,15 +237,15 @@ Hff = Hff;
 Petarg = 10^-5;
 Gamma = 2/3*((erfcinv(Petarg/2))^2);
 %- Water-filling distribution power
-BitsWF = 1/2*log(1+((Pi.*(abs(Hf).^2))./(N0*Gamma)))/log(2);%
+BitsWF = 1/2*log(1+((Pi.*(abs(Hf).^2))./(sigmaN*Gamma)))/log(2);%
 %-Power uniformly distributed
-BitsPowerUniform = 1/2*log(1+(Pmax/Nb.*(abs(Hf).^2).*ones(1,Nb)./(N0*Gamma)))/log(2);%.*(abs(Hff).^2
+BitsPowerUniform = 1/2*log(1+(Pmax/Nb.*(abs(Hf).^2).*ones(1,Nb)./(sigmaN*Gamma)))/log(2);%.*(abs(Hff).^2
 
 figure();
 hold on;
 plot(1:128,BitsWF,'LineWidth',1.5,'MarkerSize',8);
 plot(1:128,BitsPowerUniform,'LineWidth',1.5,'MarkerSize',8);
-xlabel('Subcarrier','interpreter','latex'); ylabel('bits per symbol','interpreter','latex'); legend('Waterfilling','Uniform power allocation');
+xlabel('Subcarrier','interpreter','latex','Fontsize',14); ylabel('bits per symbol','interpreter','latex','Fontsize',14); legend('Waterfilling','Uniform power allocation');
 title('Number of bits per symbol for each subchannel','Fontsize',16,'interpreter','latex');
 
 
@@ -251,9 +253,9 @@ title('Number of bits per symbol for each subchannel','Fontsize',16,'interpreter
 % Step2 : False Bonus : Bits fixed
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 lambda = -0.5;
-Pmax = 128*3;
+Pmax = 1;
 %Pmax = sum(1./abs(Hf).^2);
-N0 = 0.01;
+N0 = sigmaN;
 for (n=0:1000000)
     Pi = sqrt(N0./Hff.^2./(-lambda));
     %Pi0 = Pi>0;
