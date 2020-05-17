@@ -158,11 +158,29 @@ xlabel('$E_S/N_0$ [dB]','interpreter','latex'); ylabel('BER','interpreter','late
 title('BER vs $E_S/N_0$','Fontsize',16,'interpreter','latex');
 
 %% Step 2 : Resource allocation 
-
-%First, computation Water-Filling
-%1)Start with initial guess of �  =1/(2*lambda*ln(2))
+% In this step, the resource allocation is studied
+% Algorithm of Water-Filling:
+%1)Start with initial guess of mu  =1/(2*lambda*ln(2))
 %2)Compute corresponding powers and total required power
-%3)Decrease or increase � by some amount if required power is too large/small
+%3)Decrease or increase mu by some amount if required power is too large/small
+%
+%Also, another metric is used by minimizing the amount of errors (MSE minimization) :
+%1)Start with initial guess of mu  =1/(2*lambda*ln(2))
+%2)Compute corresponding powers and total required power
+%3)Decrease or increase mu by some amount if required power is too large/small
+%
+%
+% Inputs :
+%  - N (scalar) := Number of subcarrier
+%  - L (scalar) := Cyclic Prefix
+%  - Nb (scalar) := Block Size
+%  
+% Outputs :
+%   - The powers allocated to each subcarrier ((Nb,1) vector)
+%   - The bits/symbol, bits rate in each subcarrier ((Nb,1) vector)
+%   - Graphs showing the channel frequency response, the powers allocated in each subcarrier,
+%             the bits/symbol in each subcarrier.
+            
 N = 128; %number of subcarrier
 f_0 = 2E9; %carrier frequency
 f_sub = 15E3; %carrier subspacing
@@ -170,40 +188,28 @@ L = 16; %cyclic prefix length
 Nb = N; % block size
 
 load('CIR.mat')
-%fvtool(h,'impulse'); % Plot the filter
-%fvtool(h,'freq');
-Eh = h'*h
-%Pmax = 128; %1
-mu = 150; %0.5
+mu = 150; 
 Pi = zeros(1,N);
-N0 = 0.01;%6.66E-7;%0.000035;
-
-%h = h/norm(h);
-hzeropad = h;
+N0 =0.01;
 hzeropad = [h.' zeros(1,N-length(h))];
 Hf = fft(hzeropad);
 Hf = fftshift(abs(Hf))/sqrt(8);
 
-%Pmax = sum(1./abs(Hf).^2)*128;
 E_on_N=100;
 Pmax=1;
 sigmaN = 1/N/E_on_N;
 
-%Hf = Hf/norm(Hf);
 figure(21);
 plot(1:length(Hf),Hf,'LineWidth',1.5,'MarkerSize',8)
-xlabel('frequency','interpreter','latex','Fontsize',14); ylabel('amplitude','interpreter','latex','Fontsize',14); %legend('Theoretical (4QAM)','Simulated');
+xlabel('frequency','interpreter','latex','Fontsize',14); ylabel('amplitude','interpreter','latex','Fontsize',14);
 title('Channel frequency response','Fontsize',16,'interpreter','latex');
-
-
-%Hf = [h(1)*ones(1,16) h(2)*ones(1,16) h(3)*ones(1,16) h(4)*ones(1,16) h(5)*ones(1,16) h(6)*ones(1,16) h(7)*ones(1,16) h(8)*ones(1,16)];
 
 for (n=0:10000000)
     Pi = ((mu*(abs(Hf).^2)-sigmaN)./(abs(Hf).^2));
     Pi0 = Pi>0;
     Pi = Pi0.*Pi;
     Ptot = sum(Pi);
-    if(abs(Pmax-Ptot)<0.01)
+    if(abs(Pmax-Ptot)<0.1)
         %End of algorithm
         Ptot;
         break;
@@ -216,31 +222,26 @@ for (n=0:10000000)
     end
 end
 
-%Hff = [h(1)*ones(1,16) h(2)*ones(1,16) h(3)*ones(1,16) h(4)*ones(1,16) h(5)*ones(1,16) h(6)*ones(1,16) h(7)*ones(1,16) h(8)*ones(1,16)];
-Hff = Hf;
-
 f1 = figure(99);
 clf;
 set(f1,'Color',[1 1 1]);
-bar(Pi +sigmaN./(abs(Hff).^2),1,'r')
+bar(Pi +sigmaN./(abs(Hf).^2),1,'r')
 hold on;
-bar(sigmaN./abs(Hff).^2,1);
+bar(sigmaN./abs(Hf).^2,1);
 xlabel('subchannel indices','interpreter','latex','Fontsize',14);
 title('Water filling algorithm','interpreter','latex','Fontsize',16)
 
-% legend('amount of power allocated to each subchannel',...
-%  'Noise to Carrier Ratio')
 %%%%%%%%%%%%%%%%%%%%%%
-%%%Bits performance
+%%%Bits performance%%%
 %%%%%%%%%%%%%%%%%%%%%%
-Hff = Hff;
 Petarg = 10^-5;
 Gamma = 2/3*((erfcinv(Petarg/2))^2);
 %- Water-filling distribution power
 BitsWF = 1/2*log(1+((Pi.*(abs(Hf).^2))./(sigmaN*Gamma)))/log(2);%
 %-Power uniformly distributed
-BitsPowerUniform = 1/2*log(1+(Pmax/Nb.*(abs(Hf).^2).*ones(1,Nb)./(sigmaN*Gamma)))/log(2);%.*(abs(Hff).^2
+BitsPowerUniform = 1/2*log(1+(Pmax/Nb.*(abs(Hf).^2).*ones(1,Nb)./(sigmaN*Gamma)))/log(2);
 
+%Graph representation
 figure();
 hold on;
 plot(1:128,BitsWF,'LineWidth',1.5,'MarkerSize',8);
@@ -249,17 +250,13 @@ xlabel('Subcarrier','interpreter','latex','Fontsize',14); ylabel('bits per symbo
 title('Number of bits per symbol for each subchannel','Fontsize',16,'interpreter','latex');
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%
-% Step2 : False Bonus : Bits fixed
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-lambda = -0.5;
-Pmax = 1;
-%Pmax = sum(1./abs(Hf).^2);
-N0 = sigmaN;
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Step2 :  Bonus : Bits fixed %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+lambda = -0.5; %FirstGuess
+
 for (n=0:1000000)
-    Pi = sqrt(N0./Hff.^2./(-lambda));
-    %Pi0 = Pi>0;
-    %Pi = Pi0.*Pi;
+    Pi = sqrt(sigmaN./Hff.^2./(-lambda));
     Ptot = sum(Pi);
     if(abs(Pmax-Ptot)<0.01)
         %End of algorithm
@@ -275,37 +272,40 @@ for (n=0:1000000)
     %lambda
 end
 
-f1 = figure(98);
+% Graph representation
+
+f1 = figure();
 clf;
 set(f1,'Color',[1 1 1]);
-bar(Pi +N0./(abs(Hff).^2),1,'r')
+bar(Pi +sigmaN./(abs(Hff).^2),1,'r')
 hold on;
-bar(N0./abs(Hff).^2,1);
+bar(sigmaN./abs(Hff).^2,1);
 xlabel('subchannel indices','interpreter','latex','Fontsize',14);
 title('Power allocation with MSE criterion','interpreter','latex','Fontsize',16)
 
 Petarg = 10^-5;
 Gamma = 2/3*((erfcinv(Petarg/2))^2);
-%- Water-filling distribution power
-BitsBonus = 1/2*log(1+(Pi.*(abs(Hf).^2))./(N0*Gamma))/log(2);%
-%-Power uniformly distributed
-%BitsPowerUniform = 1/2*log(1+(Pmax/Nb*ones(1,Nb).*(abs(Hff).^2))./(N0*Gamma))/log(2);%.*(abs(Hff).^2
+%- MSE distribution power
+BitsMSE = 1/2*log(1+(Pi.*(abs(Hf).^2))./(sigmaN*Gamma))/log(2);
 
 figure();
 hold on;
-plot(1:128,BitsBonus);
-%plot(1:128,BitsPowerUniform);
-legend('Bonus');
+plot(1:128,BitsMSE,'LineWidth',1.5,'MarkerSize',8);
+xlabel('Subcarrier','interpreter','latex','Fontsize',14); 
+ylabel('bits per symbol','interpreter','latex','Fontsize',14); 
+legend('MSE criterion allocation');
+title('Number of bits per symbol for each subchannel','Fontsize',16,'interpreter','latex');
 
 
-summmm = sum(BitsWF)
+
 %% Step 3 : Channel estimation
 Nb = N;
 % BER calculation for each noise level
-Nsnr=50; %%Changed 20 before
+Nsnr=20; %%Changed 20 before
 Es_N0_dB=linspace(0,20,Nsnr);
 Es_N0=10.^(Es_N0_dB/10);
-moy = 10;
+moy = 100;
+for long = [120]%120
 MSE=zeros(Nsnr,1);
 for index_SNR=1:Nsnr
     
@@ -340,10 +340,10 @@ for index_SNR=1:Nsnr
         % 6) parallel to serial
         serial = [paralel_CP(:,1).' paralel_CP(:,2).' paralel_CP(:,3).' paralel_CP(:,4).' paralel_CP(:,5).'];
         % 7) AWGN channel + real channel
-        long = 7;
-        h = raylrnd(1:long) + 1i*raylrnd(1:long);
+        %long = 7;
+        h = raylrnd(1:120) + 1i*raylrnd(1:120);
         h = h./norm(h);
-        h = [h(1:long) zeros(1,(Nb-long))];
+        h = [h(1:120) zeros(1,(Nb-120))];
         %%%Channel created%%%%%%%%%%%%%%%%%%%%%%%
         y = conv(h,serial)+ randn(size(conv(h,serial)))*sqrt(N0/2)+ randn(size(conv(h,serial)))*sqrt(N0/2)*1i;
         % 8) serial to parralel
@@ -360,28 +360,48 @@ for index_SNR=1:Nsnr
         traindague = pinv(training, 10^-5);
         hhatfreq = traindague.*testtraining;
         hguess = (Nb)*(ifft(hhatfreq));
-        
+        estimee = [hguess(1:long).' zeros(1,(Nb-long))];
         if (long==8)
             estimee = [hguess(1) hguess(2) hguess(3) hguess(4) hguess(5) hguess(6) hguess(7) hguess(8)];
             estimee = [hguess(1:long).' zeros(1,(Nb-long))];
         end
         if (long==9)
             long = 9;
-            estimee = [hguess(1) hguess(2) hguess(3) hguess(4) hguess(5) hguess(6) hguess(7) hguess(8) 0];
-            estimee = [hguess(1:(long-1)).' zeros(1,(Nb-long+1))];
+            estimee = [hguess(1) hguess(2) hguess(3) hguess(4) hguess(5) hguess(6) hguess(7) hguess(8) hguess(9)];
+            estimee = [hguess(1:(long)).' zeros(1,(Nb-long))];
         end
         
         if (long==7)
-            estimee = [hguess(1) hguess(2) hguess(3) hguess(4) hguess(5) hguess(6) hguess(7) hguess(8)];
-            estimee = [hguess(1:long).' zeros(1,(Nb-long))];
+            estimee = [hguess(1) hguess(2) hguess(3) hguess(4) hguess(5) hguess(6) hguess(7)];
+            estimee = [hguess(1:(long)).' zeros(1,(Nb-long))];
             %h = [h 0];
         end
+        
+        
        % estimee = [hguess(1:long).' zeros(1,(Nb-long))];
         
-       % figure(20);
-        %stem(1:length(hguess), abs(hguess));
-        %figure(21);
-        %stem(1:length(estimee), abs(estimee));
+%         
+%         if (long==8)
+%         if (N0 ==1) 
+%         figure(19);
+%         stem(1:length(hguess), abs(hguess),'linewidth',0.75);
+%         title('The estimated channel impulse response','interpreter','latex','Fontsize',16);
+%         xlabel('n, taps indices','interpreter','Latex','Fontsize',14);
+%         ylabel('Amplitude','interpreter','latex','Fontsize',14);
+%         end
+%         if (N0 ==0.01) 
+%         figure(20);
+%         stem(1:length(hguess), abs(hguess),'linewidth',0.75);
+%         title('The estimated channel impulse response ','interpreter','latex','Fontsize',16);
+%         xlabel('n, taps indices','interpreter','Latex','Fontsize',14);
+%         ylabel('Amplitude','interpreter','latex','Fontsize',14);
+%         end
+%         figure(21);
+%         stem(1:length(estimee), abs(estimee),'linewidth',0.75);
+%         title('The estimated channel impulse response knowing the channel length','interpreter','latex','Fontsize',16);
+%         xlabel('n, taps indices','interpreter','Latex','Fontsize',14);
+%         ylabel('Amplitude','interpreter','latex','Fontsize',14);
+%         end
         
         MSECalc = sum(abs(estimee-h).^2)/moy;
         MSE(index_SNR) = MSE(index_SNR) + MSECalc;
@@ -407,10 +427,14 @@ for index_SNR=1:Nsnr
     %BER(index_SNR)=BER(index_SNR)/N_symbols;
 end
 figure(100);
-plot(Es_N0_dB,MSE/MSE(1));
-title('The mean-square error of the channel estimation in function of the SNR','interpreter','latex');
-xlabel('SNR [dB]','interpreter','Latex');
-ylabel('MSE/MSE(N0=0[dB])','interpreter','latex');
+plot(Es_N0_dB,10*log10(MSE),'-x','linewidth',1.5);
+title('The mean-square error of the channel estimation in function of the SNR','interpreter','latex','Fontsize',16);
+xlabel('SNR [dB]','interpreter','Latex','Fontsize',14);
+ylabel('MSE [dB]','interpreter','latex','Fontsize',14);
+hold on;
+%legend('4 taps','7 taps','8 taps','9 taps','12 taps');
+legend('120 taps');
+end
 
 %% Step 4 : Optimal Viterbi (soft) decoding
 
