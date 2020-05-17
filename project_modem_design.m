@@ -449,6 +449,23 @@ legend('4 taps','7 taps','8 taps','9 taps','12 taps','120 taps');
 end
 
 %% Step 4 : Optimal Viterbi (soft) decoding
+% 
+% In this step 4, the basic OFDM chain is extended by adding the
+% equalization and the Viterbi encoding/decoding blocks.
+% Two different cases are studied :
+% 1) Viterbi decoding with an AWGN channel
+% 2) Viterbi decoding with a real +AWGN channel using the real or estimated
+% channel for the equalization or Viterbi decoding
+% 
+% Inputs :
+%  - N (scalar) := Number of subcarrier
+%  - L (scalar) := Cyclic Prefix length
+%  - Nb (scalar) := Block Size
+%  - g (matrix) := Convolutional code
+%
+% Outputs :
+%   - Graphs showing the BER 
+%                 in function of the SNR for different types of channel  
 
 %====================== With an AWGN channel ==============================
 
@@ -827,6 +844,19 @@ title('Viterbi: BER vs $E_S/N_0$','Fontsize',16,'interpreter','latex');
 
 
 %% Step 4 Bonus
+% 
+% In this step 4, the basic OFDM chain is extended by adding the
+% equalization and the Viterbi encoding/decoding blocks.
+% The interleaving impact of the bits is studied.
+% 
+% Inputs :
+%  - N (scalar) := Number of subcarrier
+%  - L (scalar) := Cyclic Prefix length
+%  - Nb (scalar) := Block Size
+%  - g (matrix) := Convolutional code
+% Outputs :
+%   - Graphs showing the BER
+%                 in function of the SNR with/without interleaving  
 
 N = 128; %number of subcarrier
 f_0 = 2E9; %carrier frequency
