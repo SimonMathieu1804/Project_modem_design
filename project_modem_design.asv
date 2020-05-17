@@ -8,6 +8,36 @@ clear all;
 clc;
 
 %%  Step 1 : Basic OFDM chain
+% 
+% In this first step, the basic OFDM chain is implemented :
+% 
+% 1) Generate bits to send
+% 2) Perform the symbol mapping (4-QAM)
+% 3) Serial-to-Parallel computation (S/P)
+% 4) Temporal representation of the blocks (IFFT)
+% 5) Insert Cyclic Prefix (+CP)
+% 6) Parallel-to-Serial (P/S)
+% 7) Channel effect : AWGN (+real channel effect, Step3)
+% 8) Serial-to-Parallel (S/P)
+% 9) Remove Cyclic Prefix (-CP)
+% 10) Frequency representation of the blocks (FFT)
+% 11) Parallel-to-Serial (P/S)
+% 12) Perform the symbol demapping 
+% 13) Decision ($\hat{Bits}$)
+% 
+% Inputs :
+%  - N (scalar) := Number of subcarrier
+%  - L (scalar) := Cyclic Prefix length
+%  - Nb (scalar) := Block Size
+%  - N0 (scalar) := PSD of the noise
+%  
+% Outputs :
+%   - Graphs showing the transmitted/received symbols 
+%             and simulated/comparison BER curves
+            
+    
+
+
 %======================= given values =====================================
 N = 128; %number of subcarrier
 f_0 = 2E9; %carrier frequency
@@ -27,11 +57,12 @@ symbols = zeros(4*Nb,1);
 for k=1:4*Nb
     symbols(k)=map(2*k-1)+1i*map(2*k);
 end
+% Graph showing the transmitted constellation
 figure(1);
 x = real(symbols); y = imag(symbols);
 scatter(x,y,40,'o','filled','r'); title('Tx constellation','Fontsize',16,'interpreter','latex');
 xlabel('In phase amplitude','Fontsize',14,'interpreter','latex'); ylabel('Quadrature amplitude','Fontsize',14,'interpreter','latex');
-% 3) Seriel to parralel
+% 3) Serial to parralel
 parallel = [symbols(1:Nb) symbols(Nb+1:2*Nb) symbols(2*Nb+1:3*Nb) symbols(3*Nb+1:4*Nb)]; % each column is a block of 256 symbols
 % 4) IFFT on the blocks
 parallel = sqrt(Nb)*ifft(parallel);
@@ -40,22 +71,6 @@ CP = [parallel(end-L+1:end,1) parallel(end-L+1:end,2) parallel(end-L+1:end,3) pa
 paralel_CP = [CP ; parallel];
 % 6) parallel to serial
 serial = [paralel_CP(:,1).' paralel_CP(:,2).' paralel_CP(:,3).' paralel_CP(:,4).'];
-
-% % Pulse Shapping
-% alpha=0.2;
-% N_truncated=10;
-% u= rcosdesign(alpha,N_truncated,10,'sqrt');
-% E_u= u*u'; %E_u should be equal to one
-% fvtool(u,'impulse'); % Plot the filter
-% fvtool(u,'freq');
-% x = upfirdn(serial, u, 10);
-% % Shift at carrier freq ??
-% % AWGN Channel
-% x = x + randn(size(x))*2*N0;
-% % bring back from carrier freq ??
-% % Matched filter
-% y = upfirdn(x, u, 1, 10);
-
 % 7) AWGN channel
 y = serial+ randn(size(serial))*sqrt(N0/2)+ randn(size(serial))*sqrt(N0/2)*1i; % line to comment in order to use pulse shaping
 % 8) serial to parralel
@@ -67,6 +82,7 @@ parallelRx = parallelRx((L+1):end,:);
 parallelRx = fft(parallelRx)/sqrt(Nb);
 % 11) parallel to serial
 output = [parallelRx(:,1).' parallelRx(:,2).' parallelRx(:,3).' parallelRx(:,4).'];
+% Graph showing the received constellation
 figure(4);
 x = real(output); y = imag(output);
 scatter(x,y,40,'o','filled','r'); title('Rx constellation','Fontsize',16,'interpreter','latex');
@@ -105,7 +121,7 @@ for index_SNR=1:Nsnr
         for k=1:4*Nb
             symbols(k)=map(2*k-1)+1i*map(2*k);
         end
-        % 3) Seriel to parralel
+        % 3) Serial to parralel
         parallel = [symbols(1:Nb) symbols(Nb+1:2*Nb) symbols(2*Nb+1:3*Nb) symbols(3*Nb+1:4*Nb)]; % each column is a block of 256 symbols
         % 4) IFFT on the blocks
         parallel = sqrt(Nb)*ifft(parallel);
@@ -136,19 +152,20 @@ for index_SNR=1:Nsnr
         output_bits(output_bits>0)=1;
         
         %---------------------------
-        %N_symbols = 4*2*Nb;
-        BER(index_SNR)=BER(index_SNR)+sum(output_bits.'~=bits);%/N_symbols;
+        % Simulated BER computation
+        BER(index_SNR)=BER(index_SNR)+sum(output_bits.'~=bits);
     end
     N_symbols = 4*2*Nb*20;
     BER(index_SNR)=BER(index_SNR)/N_symbols;
 end
 
-
+%Theoritical BER computation
 k=4;
 M=2^k;
 x=sqrt(3*k*Es_N0/(M-1));
 theoretical_SER=erfc(sqrt(0.5*(10.^(Es_N0_dB/10)))) - (1/4)*(erfc(sqrt(0.5*(10.^(Es_N0_dB/10))))).^2;
 
+% Graphs showing the datas
 figure(5);
 semilogy(Es_N0_dB,theoretical_SER/2,'-r','LineWidth',1.5);
 hold on;
@@ -158,22 +175,25 @@ xlabel('$E_S/N_0$ [dB]','interpreter','latex'); ylabel('BER','interpreter','late
 title('BER vs $E_S/N_0$','Fontsize',16,'interpreter','latex');
 
 %% Step 2 : Resource allocation 
-% In this step, the resource allocation is studied
+% In this step, the resource allocation is studied using two different
+% criteria
+%
 % Algorithm of Water-Filling:
-%1)Start with initial guess of mu  =1/(2*lambda*ln(2))
+%1)Start with initial guess of mu (scalar, the "water-level")
 %2)Compute corresponding powers and total required power
 %3)Decrease or increase mu by some amount if required power is too large/small
 %
 %Also, another metric is used by minimizing the amount of errors (MSE minimization) :
-%1)Start with initial guess of mu  =1/(2*lambda*ln(2))
+%1)Start with initial guess of lambda (scalar)
 %2)Compute corresponding powers and total required power
 %3)Decrease or increase mu by some amount if required power is too large/small
 %
 %
 % Inputs :
 %  - N (scalar) := Number of subcarrier
-%  - L (scalar) := Cyclic Prefix
+%  - L (scalar) := Cyclic Prefix length
 %  - Nb (scalar) := Block Size
+%  - Pmax (scalar) := Maximum power available among all the subcarriers
 %  
 % Outputs :
 %   - The powers allocated to each subcarrier ((Nb,1) vector)
@@ -182,16 +202,12 @@ title('BER vs $E_S/N_0$','Fontsize',16,'interpreter','latex');
 %             the bits/symbol in each subcarrier.
             
 N = 128; %number of subcarrier
-f_0 = 2E9; %carrier frequency
-f_sub = 15E3; %carrier subspacing
 L = 16; %cyclic prefix length
 Nb = N; % block size
 
 load('CIR.mat')
-Eh = h'*h
-mu = 150; %0.5
+mu = 150; 
 Pi = zeros(1,N);
-N0 =0.01;
 hzeropad = [h.' zeros(1,N-length(h))];
 Hf = fft(hzeropad);
 Hf = fftshift(abs(Hf))/sqrt(8);
@@ -202,7 +218,7 @@ sigmaN = 1/N/E_on_N;
 
 figure(21);
 plot(1:length(Hf),Hf,'LineWidth',1.5,'MarkerSize',8)
-xlabel('frequency','interpreter','latex','Fontsize',14); ylabel('amplitude','interpreter','latex','Fontsize',14); %legend('Theoretical (4QAM)','Simulated');
+xlabel('frequency','interpreter','latex','Fontsize',14); ylabel('amplitude','interpreter','latex','Fontsize',14);
 title('Channel frequency response','Fontsize',16,'interpreter','latex');
 
 for (n=0:10000000)
@@ -210,47 +226,39 @@ for (n=0:10000000)
     Pi0 = Pi>0;
     Pi = Pi0.*Pi;
     Ptot = sum(Pi);
-    if(abs(Pmax-Ptot)<100)
+    if(abs(Pmax-Ptot)<0.1)
         %End of algorithm
         Ptot;
         break;
     elseif(Pmax>Ptot)
         %Too Few power
-        mu = mu +1;
+        mu = mu +0.001;
     elseif(Pmax<Ptot)
         %Too much power
-        mu = mu - 1;
+        mu = mu - 0.001;
     end
 end
-sum(abs(Hf).^2)
-n
-Pmax;
-Pi;
-%Hff = [h(1)*ones(1,16) h(2)*ones(1,16) h(3)*ones(1,16) h(4)*ones(1,16) h(5)*ones(1,16) h(6)*ones(1,16) h(7)*ones(1,16) h(8)*ones(1,16)];
-Hff = Hf;
 
 f1 = figure(99);
 clf;
 set(f1,'Color',[1 1 1]);
-bar(Pi +sigmaN./(abs(Hff).^2),1,'r')
+bar(Pi +sigmaN./(abs(Hf).^2),1,'r')
 hold on;
-bar(sigmaN./abs(Hff).^2,1);
+bar(sigmaN./abs(Hf).^2,1);
 xlabel('subchannel indices','interpreter','latex','Fontsize',14);
 title('Water filling algorithm','interpreter','latex','Fontsize',16)
 
-% legend('amount of power allocated to each subchannel',...
-%  'Noise to Carrier Ratio')
 %%%%%%%%%%%%%%%%%%%%%%
-%%%Bits performance
+%%%Bits performance%%%
 %%%%%%%%%%%%%%%%%%%%%%
-Hff = Hff;
 Petarg = 10^-5;
 Gamma = 2/3*((erfcinv(Petarg/2))^2);
 %- Water-filling distribution power
 BitsWF = 1/2*log(1+((Pi.*(abs(Hf).^2))./(sigmaN*Gamma)))/log(2);%
 %-Power uniformly distributed
-BitsPowerUniform = 1/2*log(1+(Pmax/Nb.*(abs(Hf).^2).*ones(1,Nb)./(sigmaN*Gamma)))/log(2);%.*(abs(Hff).^2
+BitsPowerUniform = 1/2*log(1+(Pmax/Nb.*(abs(Hf).^2).*ones(1,Nb)./(sigmaN*Gamma)))/log(2);
 
+%Graph representation
 figure();
 hold on;
 plot(1:128,BitsWF,'LineWidth',1.5,'MarkerSize',8);
@@ -259,17 +267,13 @@ xlabel('Subcarrier','interpreter','latex','Fontsize',14); ylabel('bits per symbo
 title('Number of bits per symbol for each subchannel','Fontsize',16,'interpreter','latex');
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%
-% Step2 : False Bonus : Bits fixed
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-lambda = -0.5;
-Pmax = 1;
-%Pmax = sum(1./abs(Hf).^2);
-N0 = sigmaN;
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Step2 :  Bonus : Bits fixed %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+lambda = -0.5; %First Guess
+
 for (n=0:1000000)
-    Pi = sqrt(N0./Hff.^2./(-lambda));
-    %Pi0 = Pi>0;
-    %Pi = Pi0.*Pi;
+    Pi = sqrt(sigmaN./Hff.^2./(-lambda));
     Ptot = sum(Pi);
     if(abs(Pmax-Ptot)<0.01)
         %End of algorithm
@@ -285,38 +289,59 @@ for (n=0:1000000)
     %lambda
 end
 
-f1 = figure(98);
+% Graph representation
+
+f1 = figure();
 clf;
 set(f1,'Color',[1 1 1]);
-bar(Pi +N0./(abs(Hff).^2),1,'r')
+bar(Pi +sigmaN./(abs(Hff).^2),1,'r')
 hold on;
-bar(N0./abs(Hff).^2,1);
+bar(sigmaN./abs(Hff).^2,1);
 xlabel('subchannel indices','interpreter','latex','Fontsize',14);
 title('Power allocation with MSE criterion','interpreter','latex','Fontsize',16)
 
 Petarg = 10^-5;
 Gamma = 2/3*((erfcinv(Petarg/2))^2);
-%- Water-filling distribution power
-BitsBonus = 1/2*log(1+(Pi.*(abs(Hf).^2))./(N0*Gamma))/log(2);%
-%-Power uniformly distributed
-%BitsPowerUniform = 1/2*log(1+(Pmax/Nb*ones(1,Nb).*(abs(Hff).^2))./(N0*Gamma))/log(2);%.*(abs(Hff).^2
+%- MSE distribution power
+BitsMSE = 1/2*log(1+(Pi.*(abs(Hf).^2))./(sigmaN*Gamma))/log(2);
 
 figure();
 hold on;
-plot(1:128,BitsBonus);
-%plot(1:128,BitsPowerUniform);
-legend('Bonus');
+plot(1:128,BitsMSE,'LineWidth',1.5,'MarkerSize',8);
+xlabel('Subcarrier','interpreter','latex','Fontsize',14); 
+ylabel('bits per symbol','interpreter','latex','Fontsize',14); 
+legend('MSE criterion allocation');
+title('Number of bits per symbol for each subchannel','Fontsize',16,'interpreter','latex');
 
 
 
 %% Step 3 : Channel estimation
+
+In this step 3, the basic OFDM chain is extended by adding the channel estimation :
+1) Extraction of the received training sequence
+2) Computation of the pseudo-inverse of the transmitted training sequence
+3) Perform \hat{H} = Y*T^+
+4) Temporal representation of the estimated channel
+5) Using the prior knowledge, the extra-taps are zeroed out
+
+Inputs :
+ - N (scalar) := Number of subcarrier
+ - L (scalar) := Cyclic Prefix length
+ - Nb (scalar) := Block Size
+ 
+Outputs :
+  - Graphs showing the MSE 
+            
+    
+
 Nb = N;
-% BER calculation for each noise level
-Nsnr=20; %%Changed 20 before
+
+% MSE calculation for each noise level and each length of channel
+Nsnr=20; 
 Es_N0_dB=linspace(0,20,Nsnr);
 Es_N0=10.^(Es_N0_dB/10);
 moy = 100;
-for long = [120]%120
+for long = [4,7,8,9,12,120]
 MSE=zeros(Nsnr,1);
 for index_SNR=1:Nsnr
     
@@ -351,11 +376,21 @@ for index_SNR=1:Nsnr
         % 6) parallel to serial
         serial = [paralel_CP(:,1).' paralel_CP(:,2).' paralel_CP(:,3).' paralel_CP(:,4).' paralel_CP(:,5).'];
         % 7) AWGN channel + real channel
-        %long = 7;
-        h = raylrnd(1:120) + 1i*raylrnd(1:120);
-        h = h./norm(h);
-        h = [h(1:120) zeros(1,(Nb-120))];
-        %%%Channel created%%%%%%%%%%%%%%%%%%%%%%%
+        %%%%%%%%%%%%%%%%%%%%%%
+        %%%Channel creation%%%
+        %%%%%%%%%%%%%%%%%%%%%%
+        if (long==120)
+            h = raylrnd(1:120) + 1i*raylrnd(1:120);
+            h = h./norm(h);
+            h = [h(1:120) zeros(1,(Nb-120))];
+        else
+            h = raylrnd(1:8) + 1i*raylrnd(1:8);
+            h = h./norm(h);
+            h = [h(1:8) zeros(1,(Nb-8))];
+        end
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        %%%Channel impacts the data%%%
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         y = conv(h,serial)+ randn(size(conv(h,serial)))*sqrt(N0/2)+ randn(size(conv(h,serial)))*sqrt(N0/2)*1i;
         % 8) serial to parralel
         y=y.';
@@ -364,34 +399,21 @@ for index_SNR=1:Nsnr
         parallelRx = parallelRx((L+1):end,:);
         % 10) FFT on the blocks
         parallelRx = fft(parallelRx)/sqrt(Nb);
-        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        % CHANNEL ESTIMATION%%%%%%%%%%%%%%
-        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        testtraining = parallelRx(:,1);
+        %%%%%%%%%%%%%%%%%%%%%%%%%
+        %%% Channel estimation%%%
+        %%%%%%%%%%%%%%%%%%%%%%%%%
+        % Extraction of the received training sequence
+        outtraining = parallelRx(:,1);
+        % Computation of the pseudo-inverse of the 
+        %    transmitted training sequence
         traindague = pinv(training, 10^-5);
-        hhatfreq = traindague.*testtraining;
+        % Perform \hat{H} = Y*T^+
+        hhatfreq = traindague.*outtraining;
+        % Temporal representation of the estimated channel
         hguess = (Nb)*(ifft(hhatfreq));
+        % Using the prior knowledge, the extra-taps are zeroed out
         estimee = [hguess(1:long).' zeros(1,(Nb-long))];
-        if (long==8)
-            estimee = [hguess(1) hguess(2) hguess(3) hguess(4) hguess(5) hguess(6) hguess(7) hguess(8)];
-            estimee = [hguess(1:long).' zeros(1,(Nb-long))];
-        end
-        if (long==9)
-            long = 9;
-            estimee = [hguess(1) hguess(2) hguess(3) hguess(4) hguess(5) hguess(6) hguess(7) hguess(8) hguess(9)];
-            estimee = [hguess(1:(long)).' zeros(1,(Nb-long))];
-        end
         
-        if (long==7)
-            estimee = [hguess(1) hguess(2) hguess(3) hguess(4) hguess(5) hguess(6) hguess(7)];
-            estimee = [hguess(1:(long)).' zeros(1,(Nb-long))];
-            %h = [h 0];
-        end
-        
-        
-       % estimee = [hguess(1:long).' zeros(1,(Nb-long))];
-        
-%         
 %         if (long==8)
 %         if (N0 ==1) 
 %         figure(19);
@@ -413,12 +435,17 @@ for index_SNR=1:Nsnr
 %         xlabel('n, taps indices','interpreter','Latex','Fontsize',14);
 %         ylabel('Amplitude','interpreter','latex','Fontsize',14);
 %         end
-        
+        %%%%%%%%%%%%%%%%%%%%%
+        %%%MSE computation%%%
+        %%%%%%%%%%%%%%%%%%%%%
         MSECalc = sum(abs(estimee-h).^2)/moy;
         MSE(index_SNR) = MSE(index_SNR) + MSECalc;
         
+        %%%%%%%%%%%%%%%%%%%
+        %%% End of Step3%%%
+        %%%%%%%%%%%%%%%%%%%
+        
         % 11) parallel to serial
-        outtraining = parallelRx(:,1).';
         output = [parallelRx(:,2).' parallelRx(:,3).' parallelRx(:,4).' parallelRx(:,5).'];
         % 12) demapping
         output_bits = zeros(4*2*Nb,1);
@@ -431,11 +458,7 @@ for index_SNR=1:Nsnr
         output_bits(output_bits>0)=1;
         
         %---------------------------
-        %N_symbols = 4*2*Nb;
-        %BER(index_SNR)=BER(index_SNR)+sum(output_bits.'~=bits);%/N_symbols;
     end
-    N_symbols = 4*2*Nb*5;
-    %BER(index_SNR)=BER(index_SNR)/N_symbols;
 end
 figure(100);
 plot(Es_N0_dB,10*log10(MSE),'-x','linewidth',1.5);
@@ -443,8 +466,7 @@ title('The mean-square error of the channel estimation in function of the SNR','
 xlabel('SNR [dB]','interpreter','Latex','Fontsize',14);
 ylabel('MSE [dB]','interpreter','latex','Fontsize',14);
 hold on;
-%legend('4 taps','7 taps','8 taps','9 taps','12 taps');
-legend('120 taps');
+legend('4 taps','7 taps','8 taps','9 taps','12 taps','120 taps');
 end
 
 %% Step 4 : Optimal Viterbi (soft) decoding
