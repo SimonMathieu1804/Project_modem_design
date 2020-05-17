@@ -879,7 +879,7 @@ BER3=zeros(Nber,1); % to make the graph for Modified Viterbi with perfect knowle
 BER4=zeros(Nber,1); %to make the graph for no coding
 
 long = 8;
-iter1 = 100;
+iter1 = 1000;
 h_matrix = zeros(Nber,long,iter1);
 
 random_matrix = linspace(1,Lf,Lf);
